@@ -1,0 +1,850 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  visitorId String   @unique
+  createdAt DateTime @default(now())
+  messages  Message[]
+  memories  Memory[]
+}
+
+model Memory {
+  id         String   @id @default(uuid())
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId  String
+  content    String
+  embedding  Unsupported("vector(768)")?  // pgvector
+  importance Int      @default(1)
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model Knowledge {
+  id         String   @id @default(uuid())
+  title      String?
+  content    String
+  category   String   @default("general")  // identity | project | system | governance | saas | research | general
+  sourceType String   @default("project")  // project | research | github | manual
+  sourceId   String?  // slug or repo name for cross-reference
+  importance Float    @default(0.5)         // 0.0-1.0 retrieval weight
+  embedding  Unsupported("vector(768)")?  // pgvector
+  metadata   Json?    // Flexible metadata
+  createdAt  DateTime @default(now())
+
+  @@index([category])
+  @@index([importance])
+}
+
+model LongTermMemory {
+  id         String   @id @default(uuid())
+  sessionId  String?
+  content    String
+  embedding  Unsupported("vector(768)")?  // pgvector
+  importance Int      @default(5) // 1-10 scale
+  category   String?  // preference | fact | interest
+  createdAt  DateTime @default(now())
+
+  @@index([importance])
+  @@index([createdAt])
+}
+
+model AnalyticsLog {
+  id            String   @id @default(uuid())
+  query         String
+  totalLatency  Int
+  ragUsed       Boolean
+  modelLatency  Int?
+  cacheHit      Boolean  @default(false)
+  ragConfidence Float?
+  model         String?
+  modelTier     String?  // "FAST" | "DEEP"
+  evalScore     Float?
+  intent        String?
+  selfHealed    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([modelTier])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?
+  name         String?
+  image        String?
+  plan         String   @default("free") // free | pro | enterprise
+  role         String   @default("user") // user | admin
+  createdAt    DateTime @default(now())
+  lastActive   DateTime?
+
+  profile      UserProfile?
+  conversations Conversation[]
+  logs         UserLog[]
+  feedback     Feedback[]
+}
+
+model UserProfile {
+  id               String   @id @default(uuid())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String   @unique
+  preferredStyle   String?  // short / detailed
+  expertiseLevel   String?  // beginner / intermediate / advanced
+  emotionalPattern String?  // calm / curious / excited
+  interactionCount Int      @default(0)
+  lastSummary      String?
+  updatedAt        DateTime @default(now()) @updatedAt
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  sessionId String?  // For anonymous users
+  source    String   @default("assistant") // assistant / twin / general / website tool
+  title     String?
+  messages  Message[]
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model Message {
+  id             String        @id @default(uuid())
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String?
+  session        Session?      @relation(fields: [sessionId], references: [id])
+  sessionId      String?
+  role           String
+  content        String        @db.Text
+  embedding      Unsupported("vector(768)")?
+  tokens         Int?
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([sessionId, createdAt])
+}
+
+model UserLog {
+  id        String   @id @default(uuid())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  action    String   // login / query / page_visit
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, action])
+  @@index([createdAt])
+}
+
+model Feedback {
+  id             String        @id @default(uuid())
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId         String?
+  conversationId String?
+  query          String        @db.Text
+  response       String        @db.Text
+  rating         Int           // 1 = positive, -1 = negative
+  comment        String?       @db.Text
+  confidence     Float?
+  intent         String?
+  createdAt      DateTime      @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Project {
+  id             String    @id @default(uuid())
+  name           String
+  slug           String?   @unique @default(cuid()) // Generated from name
+  githubUrl      String?   @unique // Optional now, allowing manual projects
+  description    String?
+  summary        String?   // AI generated summary
+  content        String?   // Full markdown content
+  coverImage     String?
+  images         String[]  @default([]) // Gallery images
+  tags           String[]
+  language       String?
+  stars          Int       @default(0)
+  status         String    @default("draft") // draft | published | archived
+  published      Boolean   @default(false)   // Maintained for backward compatibility
+  publishedAt    DateTime?
+  lastSyncedAt   DateTime?
+  githubPushedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, published, createdAt])
+}
+
+model Research {
+  id        String   @id @default(uuid())
+  title     String
+  slug      String   @unique
+  summary   String
+  content   String
+  tags      String[]
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+}
+
+
+model BackgroundJob {
+  id          String   @id @default(uuid())
+  type        String   // github-sync | embed-content | memory-score
+  status      String   @default("queued") // queued | running | completed | failed
+  payload     String?  // JSON stringified data
+  result      String?  // JSON result or error message
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([type, createdAt])
+}
+// ... existing models
+
+model GraphNode {
+  id         String      @id @default(uuid())
+  sourceType String      // project | research | memory
+  sourceId   String?     // slug or id
+  importance Float       @default(1.0)
+  embedding  Unsupported("vector(768)")?     // pgvector
+  metadata   Json?
+  edgesFrom  GraphEdge[] @relation("SourceEdges")
+  edgesTo    GraphEdge[] @relation("TargetEdges")
+  createdAt  DateTime    @default(now())
+}
+
+model GraphEdge {
+  id         String    @id @default(uuid())
+  sourceId   String
+  targetId   String
+  weight     Float     @default(1.0)
+  relation   String?   // "relates_to", "depends_on", "implements"
+  source     GraphNode @relation("SourceEdges", fields: [sourceId], references: [id], onDelete: Cascade)
+  target     GraphNode @relation("TargetEdges", fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([sourceId])
+  @@index([targetId])
+}
+
+model TwinProfile {
+  id                String   @id @default(uuid())
+  coreBeliefs       String?  @db.Text
+  expertise         String?  @db.Text
+  communicationStyle String? @db.Text
+  decisionStyle     String?  @db.Text
+  goals             String?  @db.Text
+  lastUpdated       DateTime @default(now())
+}
+
+model TwinMemory {
+  id         String   @id @default(uuid())
+  type       String   // goal | reflection | observation | decision | plan
+  content    String   @db.Text
+  embedding  Unsupported("vector(768)")?  // pgvector
+  importance Float    @default(1.0)
+  createdAt  DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+model TwinConversation {
+  id        String   @id @default(uuid())
+  userId    String?
+  visitorId String?
+  role      String
+  content   String   @db.Text
+  embedding Unsupported("vector(768)")? 
+  createdAt DateTime @default(now())
+
+  @@index([visitorId])
+}
+
+model TwinIdentity {
+  id                  String   @id @default(uuid())
+  corePrinciples      String   @db.Text
+  expertiseDomains    String[]
+  decisionFramework   String   @db.Text
+  communicationRules  String   @db.Text
+  strategicObjectives String[]
+  disallowedBehaviors String[]
+  lastUpdated         DateTime @default(now())
+}
+
+model TwinStrategicMemory {
+    id        String   @id @default(uuid())
+    goal      String
+    status    String
+    priority  Float
+    createdAt DateTime @default(now())
+
+    @@index([priority(sort: Desc)])
+}
+
+model TwinBehaviorCalibration {
+  id        String   @id @default(uuid())
+  metric    String   @unique
+  adjustment String
+  updatedAt DateTime @updatedAt
+}
+
+model TwinPolicy {
+  id                  String   @id @default(uuid())
+  reasoningRules      String   @db.Text
+  retrievalStrategy   String   @db.Text
+  communicationStyle  String   @db.Text
+  evaluationRules     String   @db.Text
+  retrievalWeights    Json?    // { architecture: 1.3, identity: 1.1, research: 1.0 }
+  version             Int      @default(1)
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([active])
+  @@index([version])
+}
+
+model TwinPerformanceLog {
+  id                   String   @id @default(uuid())
+  query                String   @db.Text
+  response             String   @db.Text
+  relevance            Float
+  clarity              Float
+  identityConsistency  Float
+  architecturalDepth   Float
+  overallScore         Float?
+  policyVersion        Int?
+  intent               String?  // architecture | strategy | identity | research | general
+  createdAt            DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([policyVersion])
+  @@index([intent])
+}
+
+// ─── COGNITIVE MEMORY SYSTEM ───────────────────────
+
+model WorkingMemory {
+  id        String   @id @default(uuid())
+  userId    String?
+  visitorId String?
+  content   String   @db.Text
+  role      String   @default("context") // context | query | response
+  createdAt DateTime @default(now())
+
+  @@index([visitorId, createdAt])
+}
+
+model EpisodicMemory {
+    id         String   @id @default(uuid())
+    userId     String?
+    eventType  String   // decision | discussion | correction | reflection | success | failure
+    content    String   @db.Text
+    importance Float    @default(0.5) // Added for db-pruning of low-signal memories
+    embedding  Unsupported("vector(768)")? 
+    createdAt  DateTime @default(now())
+
+    @@index([eventType])
+    @@index([createdAt(sort: Desc)])
+    @@index([importance(sort: Desc)])
+}
+
+model SemanticMemory {
+  id             String   @id @default(uuid())
+  concept        String
+  description    String   @db.Text
+  embedding      Unsupported("vector(768)")?
+  strength       Float    @default(1.0)
+  lastReinforced DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([strength])
+  @@index([lastReinforced])
+}
+
+model BehavioralMemory {
+  id            String   @id @default(uuid())
+  pattern       String   @db.Text
+  improvement   String   @db.Text
+  effectiveness Float    @default(0.5)
+  applied       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([effectiveness])
+  @@index([applied])
+}
+
+// ─── MEMORY GRAPH CLUSTERING ───────────────────────
+
+model MemoryCluster {
+  id           String              @id @default(uuid())
+  conceptName  String
+  summary      String              @db.Text
+  embedding    Unsupported("vector(768)")?
+  strength     Float               @default(1.0)
+  memberCount  Int                 @default(0)
+  members      ClusterMembership[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([strength])
+  @@index([memberCount])
+}
+
+model ClusterMembership {
+  id        String        @id @default(uuid())
+  clusterId String
+  memoryId  String
+  memoryType String       @default("episodic") // episodic | semantic | behavioral
+  weight    Float         @default(1.0)
+  cluster   MemoryCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([clusterId, memoryId])
+  @@index([clusterId])
+  @@index([memoryId])
+}
+
+// ─── DYNAMIC RETRIEVAL WEIGHT TUNING ───────────────
+
+model RetrievalWeightProfile {
+  id              String   @id @default(uuid())
+  intent          String   @unique // architecture | strategy | identity | research
+  vectorWeight    Float    @default(0.4)
+  clusterWeight   Float    @default(0.3)
+  episodicWeight  Float    @default(0.2)
+  semanticWeight  Float    @default(0.1)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
+
+model WeightAdjustmentLog {
+  id         String   @id @default(uuid())
+  intent     String
+  oldWeights Json
+  newWeights Json
+  reason     String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([intent])
+  @@index([createdAt])
+}
+
+// ─── REINFORCEMENT REWARD MODEL ────────────────────
+
+model RewardLog {
+  id                   String   @id @default(uuid())
+  query                String   @db.Text
+  intent               String?
+  response             String   @db.Text
+  relevance            Float
+  clarity              Float
+  identityConsistency  Float
+  architecturalDepth   Float
+  hallucinationPenalty Float    @default(0)
+  totalReward          Float
+  clusterIds           String[] // clusters used in retrieval
+  createdAt            DateTime @default(now())
+
+  @@index([intent])
+  @@index([totalReward])
+  @@index([createdAt])
+}
+
+// ─── ADVERSARIAL EVALUATION ENGINE ─────────────────
+
+model SystemSnapshot {
+  id               String   @id @default(uuid())
+  retrievalWeights Json
+  policyRules      Json
+  clusterState     Json
+  bestReward       Float    @default(1.0)
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model OfflineEvalReport {
+  id                  String   @id @default(uuid())
+  avgReward           Float
+  weakArchitecture    Boolean  @default(false)
+  hallucinationIssue  Boolean  @default(false)
+  identityIssue       Boolean  @default(false)
+  regressionDetected  Boolean  @default(false)
+  queryCount          Int
+  details             Json?
+  createdAt           DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([avgReward])
+}
+
+// ─── MULTI-AGENT DEBATE ENGINE ─────────────────────
+
+model DebateLog {
+  id                 String   @id @default(uuid())
+  query              String   @db.Text
+  intent             String?
+  complexityLevel    String   @default("standard") // simple | standard | deep
+  draft              String   @db.Text
+  retrieverFeedback  String?  @db.Text
+  skepticFeedback    String?  @db.Text
+  identityFeedback   String?  @db.Text
+  finalResponse      String   @db.Text
+  draftReward        Float?
+  finalReward        Float?
+  rewardDelta        Float?
+  debateDurationMs   Int?
+  createdAt          DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([complexityLevel])
+}
+
+// ─── LONG-HORIZON PLANNING ENGINE ──────────────────
+
+model Plan {
+  id              String     @id @default(uuid())
+  goal            String     @db.Text
+  goalType        String?    // architecture_optimization | research | strategy | improvement
+  domain          String?
+  priority        Float      @default(0.5)
+  complexity      String     @default("standard") // simple | standard | complex
+  status          String     @default("active")   // active | paused | completed | failed | replanning
+  riskAssessment  String?    @db.Text
+  currentStepIdx  Int        @default(0)
+  totalSteps      Int        @default(0)
+  progress        Float      @default(0)
+  parentPlanId    String?    // for hierarchical sub-plans
+  steps           PlanStep[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([parentPlanId])
+}
+
+model PlanStep {
+  id            String   @id @default(uuid())
+  planId        String
+  plan          Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  stepIndex     Int
+  title         String
+  description   String   @db.Text
+  dependsOn     Int[]    // indices of prerequisite steps
+  status        String   @default("pending") // pending | running | completed | failed | skipped
+  output        String?  @db.Text
+  rewardBefore  Float?
+  rewardAfter   Float?
+  rewardDelta   Float?
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  @@index([planId])
+  @@index([status])
+}
+
+// ─── AUTONOMOUS GOAL FORMATION ─────────────────────
+
+model AutonomousGoal {
+  id                String   @id @default(uuid())
+  goal              String   @db.Text
+  trigger           String   // performance_decline | weak_metric | stagnation | cluster_imbalance | exploration
+  reason            String   @db.Text
+  expectedImpact    String?  @db.Text
+  riskLevel         String   @default("low")  // low | medium | high
+  successMetric     String?  @db.Text
+  evaluationScore   Float?   // 0-1 from Goal Evaluator Agent
+  priorityScore     Float?
+  status            String   @default("proposed") // proposed | approved | executing | completed | rejected | failed
+  planId            String?  // linked to Plan after approval
+  rewardBefore      Float?
+  rewardAfter       Float?
+  rewardDelta       Float?
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  @@index([status])
+  @@index([priorityScore])
+  @@index([createdAt])
+}
+
+// ─── RESEARCH HYPOTHESIS ENGINE ────────────────────
+
+model ResearchHypothesis {
+  id                  String   @id @default(uuid())
+  hypothesisId        String   @unique // H-YYYY-NNN
+  statement           String   @db.Text
+  reasoning           String?  @db.Text
+  independentVar      String?
+  dependentVar        String?
+  gap                 String?  @db.Text
+  gapSeverity         Float?
+  baselineScore       Float?
+  experimentalScore   Float?
+  improvement         Float?
+  targetImprovement   Float    @default(0.05)
+  testQueryCount      Int      @default(20)
+  hallucinationDelta  Float?
+  identityDelta       Float?
+  status              String   @default("proposed") // proposed | testing | validated | rejected | failed
+  riskLevel           String   @default("low")
+  confidence          Float?
+  createdAt           DateTime @default(now())
+  completedAt         DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ResearchAgenda {
+  id          String   @id @default(uuid())
+  topic       String   @db.Text
+  gap         String?  @db.Text
+  priority    Float    @default(0.5)
+  status      String   @default("open") // open | active | completed | deferred
+  hypothesisCount Int  @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([priority])
+  @@index([status])
+}
+
+// ─── META-COGNITIVE SELF-MODELING ───────────────────
+
+model CognitiveState {
+  id                    String   @id @default(uuid())
+  reasoningDepth        Float
+  confidenceLevel       Float
+  identityAlignment     Float
+  retrievalBias         Float
+  debateDiversity       Float
+  hallucinationRisk     Float
+  predictedReward       Float?
+  actualReward          Float?
+  calibrationError      Float?   // |predicted - actual|
+  driftScore            Float?   // rolling identity alignment delta
+  controlSignals        Json?    // adaptive adjustments emitted
+  createdAt             DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([driftScore])
+}
+
+// ─── OBSERVABILITY + EXPERIMENT TRACKING ───────────
+
+model ObservabilityLog {
+  id          String   @id @default(uuid())
+  traceId     String
+  stage       String   // retrieval | debate | llm_call | reward | metacognition | planning
+  metadata    Json?
+  latencyMs   Int?
+  tokenCount  Int?
+  model       String?
+  error       String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([traceId])
+  @@index([stage])
+  @@index([createdAt])
+}
+
+model Experiment {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  config      Json
+  metrics     Json?
+  avgReward   Float?
+  baselineReward Float?
+  improvement Float?
+  status      String   @default("running") // running | completed | failed
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([name])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─── WORLD-MODEL + SIMULATION ENGINE ───────────────
+
+model WorldModelState {
+  id                  String   @id @default(uuid())
+  avgReward           Float
+  architecturalDepth  Float
+  identityAlignment   Float
+  hallucinationRate   Float
+  clusterEntropy      Float
+  debateDiversity     Float
+  retrievalBias       Float
+  createdAt           DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SimulationRun {
+  id              String   @id @default(uuid())
+  action          String
+  stateBeforeId   String?
+  predictedReward Float
+  predictedHalluc Float
+  predictedDepth  Float
+  expectedUtility Float
+  actualReward    Float?
+  actualHalluc    Float?
+  actualDepth     Float?
+  predictionError Float?
+  selected        Boolean  @default(false) // was this action chosen?
+  executed        Boolean  @default(false)
+  horizonSteps    Int      @default(1)
+  trajectory      Json?    // multi-step trajectory [{step, state, reward}]
+  createdAt       DateTime @default(now())
+
+  @@index([action])
+  @@index([selected])
+  @@index([createdAt])
+}
+
+// ─── MULTI-TWIN COGNITIVE SWARM ────────────────────
+
+model SwarmSession {
+  id              String   @id @default(uuid())
+  goal            String   @db.Text
+  complexity      String   @default("standard") // simple | standard | deep
+  proposals       Json     // [{twin, proposal, confidence, risk}]
+  debate          Json?    // debate transcript
+  consensus       Json?    // final merged strategy
+  selectedTwin    String?
+  avgConfidence   Float?
+  finalReward     Float?
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SwarmTwinScore {
+  id              String   @id @default(uuid())
+  twinName        String   @unique // architecture | research | safety | performance | meta
+  avgReward       Float    @default(0.5)
+  influenceWeight Float    @default(0.2)
+  contributions   Int      @default(0)
+  wins            Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@index([twinName])
+}
+
+// ─── EXTERNAL TOOL AUTONOMY ───────────────────────
+
+model ToolExecution {
+  id              String   @id @default(uuid())
+  toolName        String   // edit_file | create_file | run_tests | run_shell | git_commit | update_config
+  target          String?  // file path or command target
+  parameters      Json?    // tool-specific params
+  riskScore       Float
+  riskLevel       String   @default("low") // low | medium | high | critical
+  approvalScore   Float?
+  approved        Boolean  @default(false)
+  executed        Boolean  @default(false)
+  success         Boolean?
+  diffSummary     String?  @db.Text
+  linesChanged    Int?
+  testsPassed     Boolean?
+  rewardBefore    Float?
+  rewardAfter     Float?
+  rewardDelta     Float?
+  rolledBack      Boolean  @default(false)
+  rollbackReason  String?
+  requestedBy     String?  // which twin requested
+  approvedBy      Json?    // which twins approved
+  error           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([toolName])
+  @@index([approved])
+  @@index([success])
+  @@index([createdAt])
+}
+
+// ─── SAAS MULTI-TENANT LAYER ──────────────────────
+
+model Tenant {
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  apiKey          String   @unique
+  apiKeyHash      String?
+  plan            String   @default("free") // free | pro | enterprise
+  active          Boolean  @default(true)
+  maxTokensPerDay Int      @default(50000)
+  maxToolCalls    Int      @default(10)
+  maxMemoryMb     Int      @default(100)
+  features        Json?    // { swarm: false, autonomy: false, tools: false, research: false }
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([apiKey])
+  @@index([email])
+  @@index([plan])
+}
+
+model TenantUsage {
+  id              String   @id @default(uuid())
+  tenantId        String
+  period          String   // "2025-06" monthly billing period
+  tokensUsed      Int      @default(0)
+  toolCalls       Int      @default(0)
+  llmCalls        Int      @default(0)
+  memorySizeMb    Float    @default(0)
+  experimentsRun  Int      @default(0)
+  swarmRuns       Int      @default(0)
+  debateRuns      Int      @default(0)
+  planningRuns    Int      @default(0)
+  totalCost       Float    @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, period])
+  @@index([tenantId])
+  @@index([period])
+}
+
+// ─── GITHUB INTELLIGENCE LAYER ────────────────────
+
+model GithubProjectIntelligence {
+  id                  String   @id @default(uuid())
+  repoName            String   @unique
+  description         String?
+  language            String?
+  stars               Int      @default(0)
+  architectureSummary String   @db.Text
+  detectedStack       Json     @default("[]")
+  complexityScore     Float    @default(0.0)
+  aiInsight           String   @db.Text
+  updatedAt           DateTime @default(now()) @updatedAt
+
+  @@index([repoName])
+  @@index([complexityScore])
+}

@@ -1,0 +1,23 @@
+# ─── Next.js Development Container ───
+# Isolates node_modules and .next inside the container,
+# preventing iCloud sync locks while enabling hot-reload.
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies first (cached layer)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Generate Prisma Client
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Copy application source (hot-reload watches these via bind mount)
+COPY . .
+
+EXPOSE 3334
+
+# Use the dev script from package.json
+CMD ["npm", "run", "dev"]

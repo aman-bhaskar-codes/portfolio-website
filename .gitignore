@@ -1,0 +1,15 @@
+node_modules
+.env
+.next
+out/
+build/
+.DS_Store
+__pycache__/
+*.pyc
+.venv
+venv/
+env/
+.env.*
+ollama.log
+coverage/
+.pytest_cache/

@@ -1,0 +1,36 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/portfolio
+
+            # Pull latest code
+            git pull origin main
+
+            # Rebuild and restart
+            docker compose down
+            docker compose up -d --build
+
+            # Run migrations
+            docker exec portfolio_app npx prisma db push
+
+            # Health check
+            sleep 10
+            curl -sf http://localhost:3000/api/system/health || echo "Health check failed"
+
+            echo "✅ Deployment complete"
