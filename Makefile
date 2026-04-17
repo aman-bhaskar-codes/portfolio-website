@@ -2,7 +2,7 @@
 
 dev:
 	@cp -n .env.genesis .env 2>/dev/null; true
-	docker compose -f docker-compose.dev.yml up --build -d
+	docker-compose -f docker-compose.dev.yml up --build -d
 	@echo "⏳ Waiting for services (30s)..."
 	@sleep 30
 	@$(MAKE) health-dev
@@ -18,7 +18,7 @@ dev:
 	@echo "  make seed          (ingest your documents)"
 
 prod:
-	docker compose -f docker-compose.yml up --build -d
+	docker-compose -f docker-compose.yml up --build -d
 	@sleep 20
 	@$(MAKE) health
 	@echo "✅ ANTIGRAVITY OS production is running!"
@@ -62,7 +62,7 @@ health-dev:
 	@curl -sf http://localhost:11434/api/tags > /dev/null && echo "✅ Ollama up" || echo "⏳ Ollama starting..."
 
 logs:
-	docker compose -f docker-compose.dev.yml logs -f api frontend
+	docker-compose -f docker-compose.dev.yml logs -f api frontend
 
 debug-api:
 	docker logs -f antigravity-api
@@ -80,11 +80,11 @@ debug-memory:
 	docker exec -it antigravity-api python -c "import asyncio; from memory.working_memory import test_memory; asyncio.run(test_memory())"
 
 stop:
-	docker compose -f docker-compose.dev.yml down
+	docker-compose -f docker-compose.dev.yml down
 
 clean:
-	docker compose -f docker-compose.dev.yml down -v --remove-orphans
-	docker compose down -v --remove-orphans 2>/dev/null; true
+	docker-compose -f docker-compose.dev.yml down -v --remove-orphans
+	docker-compose down -v --remove-orphans 2>/dev/null; true
 	@echo "✅ Clean"
 
 test:
