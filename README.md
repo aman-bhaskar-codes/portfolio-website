@@ -1,10 +1,14 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=timeGradient&height=200&section=header&text=ANTIGRAVITY%20OS%20v4&fontSize=60&fontAlignY=35&desc=The%20Digital%20Twin%20Architecture&descAlignY=55&descAlign=50&animation=twinkling" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=timeGradient&height=250&section=header&text=Agentic%20Portfolio%20Website&fontSize=65&fontAlignY=35&desc=A%20Living,%20Autonomous%20Digital%20Twin&descAlignY=55&descAlign=50&animation=twinkling" width="100%" />
 
-[![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=20&pause=1000&color=32CD32&center=true&vCenter=true&width=600&height=50&lines=Not+a+portfolio.+A+living+intelligence.;Self-updating%2C+persona-adaptive%2C+multi-agent+AI.;Knows+every+line+of+code+you've+written.;Detects+who's+visiting+before+they+speak.;Speaks+in+your+voice.+Runs+100%25+locally.)](https://git.io/typing-svg)
+[![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=20&pause=1000&color=00FFCC&center=true&vCenter=true&width=600&height=50&lines=Not+a+portfolio.+A+living+intelligence.;Self-updating%2C+persona-adaptive%2C+multi-agent+AI.;Knows+every+line+of+code+you've+written.;Detects+who's+visiting+before+they+speak.;Speaks+in+your+voice.+Runs+100%25+locally.)](https://git.io/typing-svg)
 
----
+<br/>
+
+<img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png" alt="Robot" width="60" /> <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People%20and%20body/Brain.png" alt="Brain" width="60" /> <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rocket.png" alt="Rocket" width="60" />
+
+<br/><br/>
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
@@ -13,29 +17,28 @@
 ![Ollama](https://img.shields.io/badge/Ollama-Local_AI-FF4500?style=for-the-badge&logo=ollama&logoColor=white)
 ![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-FF3366?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen?style=for-the-badge)
 
 </div>
 
 ---
 
-## ◈ The Paradigm Shift
+## <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Sparkles.png" alt="Sparkles" width="35" /> The Paradigm Shift
 
 Most portfolios are **dead documents** — a list of projects no one reads, a contact form no one fills.
 
-**ANTIGRAVITY OS** is the opposite. 
+The **Agentic Portfolio Website** is the exact opposite. 
 
-It's a **Digital Twin OS** — a fully autonomous, self-aware intelligence layer that:
+It's a fully autonomous, self-aware intelligence layer that acts as your personal representative on the web:
 
-- 🧠 **Knows Everything:** Masterful recall of every commit, tradeoff, and architecture design you’ve implemented.
-- 👁️ **Instant Recognition:** Detects recruiters, founders, or senior engineers instantly, adapting layout and depth on-the-fly.
-- 🗣️ **Your Authenticity:** Meticulously designed to speak with your nuances, your engineering opinions, and your genuine voice.
-- 🔄 **Self-Evolution:** Auto-ingests GitHub commits within 45 seconds. Optimizes its own prompts via DSPy every Sunday.
-- 🏗️ **Local-First Perfection:** Runs entirely localized via Ollama + Docker. Zero cloud bills. Complete data sovereignty.
+- 🧠 **Omniscient Recall:** Masterful recall of every commit, tradeoff, and architecture design you’ve implemented.
+- 👁️ **Instant Recognition:** Detects recruiters, founders, or senior engineers instantly, adapting its layout and language depth on-the-fly.
+- 🗣️ **Authentic Voice:** Meticulously designed to speak with your nuances, engineering opinions, and genuine tone.
+- 🔄 **Autonomous Evolution:** Engages a background loop to auto-ingest new GitHub commits and optimizes its own prompts via DSPy algorithms.
+- 🏗️ **Local-First Sanctity:** Runs entirely localized via Ollama + Docker. Zero cloud bills. Complete data sovereignty.
 
 ---
 
-## ◈ System Architecture Map
+## <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Laptop.png" alt="Laptop" width="35" /> System Architecture Map
 
 ```mermaid
 graph TD
@@ -49,7 +52,7 @@ graph TD
     N --> S[Security Pipeline: DDoS, Rate Limit, Inject Shield]:::security
     S --> I[Visitor Intelligence: Persona & Memories]:::intelligence
     
-    I -->|SSE Chat| L[LangGraph Agent]:::agents
+    I -->|SSE Chat Streaming| L[LangGraph Agent]:::agents
     I -->|WebSocket| V[Voice Engine]:::agents
 
     subgraph LangGraph Multi-Agent Engine
@@ -72,62 +75,62 @@ graph TD
 
 ---
 
-## ◈ Cinematic Capabilities
+## <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Crystal%20Ball.png" alt="Crystal Ball" width="35" /> Cinematic Capabilities
 
 ### ⚡ Unprecedented Personalization
 Classifies every visitor into a persona **before they speak**—adapting pixels and dialogue. 
-- **Technical Recruiters:** See impact-first answers and 1-click tailored PDF briefs.
-- **Senior Engineers:** See system design deep-dives and raw code traversals.
-- **Founders:** See zero-to-one velocity and autonomous execution potential.
+- 💼 **Technical Recruiters:** See impact-first answers and 1-click tailored PDF briefs.
+- 💻 **Senior Engineers:** Dive straight into system designs, tradeoff logs, and raw code traversals.
+- 🚀 **Founders:** Are presented with zero-to-one velocity and autonomous execution narratives.
 
-### 🔍 5-Stage Hybrid Retrieval (RAG 2.0)
-Where most AI uses simple semantic search, ANTIGRAVITY OS deploys a 5-stage pipeline:
-1. **HyDE** (Hypothetical Document Embeddings) Expansion
-2. **Dense Retrieval** via Qdrant (nomic-embed-text)
-3. **Sparse Retrieval** via BM25 Keyword Matching
+### 🔍 5-Stage Hybrid Retrieval
+Where most AI chatbots use simple semantic search, this system deploys a heavy-duty pipeline:
+1. **HyDE** (Hypothetical Document Embeddings)
+2. **Dense Retrieval** via Qdrant (`nomic-embed-text`)
+3. **Sparse Retrieval** via BM25
 4. **RRF** (Reciprocal Rank Fusion)
-5. **Cross-Encoder / ColBERT** late-interaction token reranking
+5. **ColBERT / Cross-Encoder** late-interaction token reranking
 
 ### 🔄 DSPy Autonomous Self-Improvement
-**ANTIGRAVITY OS does not stagnate.** Every Sunday at 1 AM:
-1. Analyzes 7 days of conversational conversions.
-2. Runs **DSPy MIPROv2** optimization (15 candidates × 25 trials).
-3. If new prompts perform >5% better, it dynamically hot-reloads its own system prompts.
-4. Pings your phone with the impact report.
+**The Agentic Portfolio does not stagnate.** Every Sunday at 1 AM:
+1. The engine analyzes 7 days of conversational conversions.
+2. Runs **DSPy MIPROv2** optimization.
+3. Evaluates if the new prompt candidate performs >5% better.
+4. Auto-deploys via hot-reloading and pings you the impact report.
 
-### 🎭 Experiential Features
-- **3D Constellation:** A force-directed Three.js map of your skills.
-- **Voice Mode:** Real-time bi-directional conversation using WebSockets.
-- **CLI Easter Egg:** Type `sudo [name]` in chat to unlock a hidden Linux-like terminal within the web app.
+### 🎭 Beautiful Experiences
+- 🌌 **3D Constellation:** A force-directed Three.js map of your skills floating in space.
+- 🎙️ **Voice Mode:** Real-time bi-directional conversation capabilities over WebSockets.
+- 💻 **Hidden CLI:** Type `sudo [name]` in chat to unlock a concealed Linux-like terminal interface.
 
 ---
 
-## ◈ The Deep Tech Stack
+## <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Wrench.png" alt="Wrench" width="35" /> The Deep Tech Stack
 
 <div align="center">
 
 | Domain | Technologies |
 |:---|:---|
-| **Local AI Models** | `llama3.2:3b` (Core), `qwen2.5:3b` (Code), `phi4-mini` (Complex logic), `llava:7b` (Vision), `nomic-embed-text` |
-| **Backend & Graph** | Python 3.12, FastAPI, LangGraph, Langchain |
-| **Data & Vector** | PostgreSQL 16 (pgvector), Redis Stack, Qdrant |
-| **RAG & NLP** | RAGatouille (ColBERT), Outlines (JSON schema adherence), DSPy, Ragas |
-| **Background & Ops** | Celery, Temporal.io, Docker Compose |
-| **Observability** | LangFuse, Prometheus, Grafana, Umami, ntfy (Alerts) |
-| **Frontend UI/UX** | Next.js 14, Three.js, Framer Motion, Shiki |
+| 🧠 **Local AI** | `llama3.2:3b` (Core), `qwen2.5:3b` (Code), `phi4-mini` (Logic), `llava:7b` (Vision) |
+| 🪢 **Core Backend** | Python 3.12, FastAPI, LangGraph, Langchain |
+| 🗄️ **Data & Vector** | PostgreSQL 16 (pgvector), Redis Stack, Qdrant |
+| 🎯 **RAG & NLP** | RAGatouille (ColBERT), Outlines (JSON schema), DSPy, Ragas |
+| ⚙️ **Background Ops** | Celery, Temporal.io, Docker Compose |
+| 📊 **Observability** | LangFuse, Prometheus, Grafana, Umami, ntfy (Alerts) |
+| 🎨 **Frontend UI** | Next.js 14, Three.js, Framer Motion, Shiki |
 
 </div>
 
 ---
 
-## ◈ Deployment & Quick Start
+## <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/High-Speed%20Train.png" alt="High-Speed Train" width="35" /> Deployment & Quick Start
 
 **Prerequisites:** Docker, Docker Compose v2, Git, 8GB+ RAM.
 
 ### 1. Bootstrap
 ```bash
-git clone https://github.com/yourusername/antigravity-os
-cd antigravity-os
+git clone https://github.com/yourusername/agentic-portfolio-website
+cd agentic-portfolio-website
 
 # Prepare your credentials
 cp .env.genesis .env
@@ -139,11 +142,11 @@ cp .env.genesis .env
 make dev
 ```
 <details>
-<summary>👁️ See Output</summary>
+<summary><img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Eyes.png" alt="Eyes" width="20" /> See Output</summary>
 <br>
 
 ```text
-✅ ANTIGRAVITY OS dev is running!
+✅ Agentic Portfolio Website dev is running!
    Frontend:  http://localhost:3000
    API docs:  http://localhost:8000/docs
    Qdrant:    http://localhost:6333/dashboard
@@ -166,9 +169,9 @@ Your digital twin is now sentient at [http://localhost:3000](http://localhost:30
 
 ---
 
-## ◈ The Data Flow
+## <img align="center" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/File%20Folder.png" alt="Folder" width="35" /> The Data Flow
 
-Populate your unique perspective via markdown files in the `/data` directory:
+Populate your unique perspective via markdown files in the `/data` directory. **The system's authenticity is directly proportional to the honesty written here.**
 
 ```text
 data/
@@ -182,17 +185,6 @@ data/
      ┣ architecture.md        # The trade-offs
      ┗ retrospective.md       # The reality
 ```
-
-*The system's authenticity is directly proportional to the honesty written in these directories.*
-
----
-
-## ◈ Security & Hardening
-
-- **Injection Shielding:** RAG chunks and user prompts are scanned in <5ms to block prompt injection or role-assumption attacks.
-- **Critical Info Vault:** Salary bands, direct phone numbers, and private parameters never enter the raw prompt. 
-- **DDoS/Abuse Detection:** Multi-tiered rate limiting + heuristic bot detection. 
-- **Graceful Degradation:** Full circuit-breaking logic. If Ollama crashes, fallback pipelines engage immediately.
 
 ---
 
