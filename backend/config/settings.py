@@ -78,13 +78,59 @@ class Settings(BaseSettings):
     OWNER_TITLE: str = "Senior AI Architect"
     OWNER_BIO: str = "Architecting cognitive platforms that bridge the gap between human intent and autonomous execution."
 
-    # ─── ANTIGRAVITY OS ───
+    # ─── ANTIGRAVITY OS v1 ───
     SEMANTIC_CACHE_TTL: int = 14400         # 4 hours
     SEMANTIC_CACHE_THRESHOLD: float = 0.93  # cosine similarity for cache hit
     AMBIENT_COOLDOWN_SECONDS: int = 300     # min 5 min between ambient triggers
     FRESHNESS_CHECK_INTERVAL: int = 3600    # check stale chunks every hour
     KNOWLEDGE_GRAPH_ENABLED: bool = True
     VISITOR_PROFILING_ENABLED: bool = True
+
+    # ─── ANTIGRAVITY OS v2: Security Vault ───
+    VAULT_ENCRYPTION_KEY: str = ""          # AES-256-GCM key (set in .env)
+
+    # ─── ANTIGRAVITY OS v2: Circuit Breaker ───
+    CB_FAILURE_THRESHOLD: int = 5
+    CB_TIMEOUT_SECONDS: int = 60
+    CB_SUCCESS_THRESHOLD: int = 2
+
+    # ─── ANTIGRAVITY OS v2: LLM Model Routing ───
+    LLM_MODEL_HEAVY: str = "phi4-mini"       # Complex: design, interview, debate
+    LLM_MODEL_MEDIUM: str = "llama3.2:3b"    # Standard Q&A, persona responses
+    LLM_MODEL_LIGHT: str = "qwen2.5:3b"      # Greetings, FAQ, classification
+    LLM_DAILY_TOKEN_LIMIT_HEAVY: int = 500000
+    LLM_DAILY_TOKEN_LIMIT_MEDIUM: int = 1000000
+    LLM_DAILY_TOKEN_LIMIT_LIGHT: int = 2000000
+
+    # ─── ANTIGRAVITY OS v2: SSE / Streaming ───
+    MAX_SSE_CONNECTIONS: int = 500
+    SSE_MAX_LIFETIME_SECONDS: int = 300     # 5 minutes
+    SSE_IDLE_TIMEOUT_SECONDS: int = 60
+
+    # ─── ANTIGRAVITY OS v2: Load Shedding ───
+    LOAD_SHED_THRESHOLD_1: int = 50         # Drop background tasks
+    LOAD_SHED_THRESHOLD_2: int = 100        # Drop low priority
+    LOAD_SHED_THRESHOLD_3: int = 200        # Static for new sessions
+    LOAD_SHED_THRESHOLD_4: int = 500        # Tier 4 all
+
+    # ─── ANTIGRAVITY OS v2: Security ───
+    SECURITY_RISK_SCRUTINY: int = 30
+    SECURITY_RISK_CHALLENGE: int = 50
+    SECURITY_RISK_DELAY: int = 75
+    SECURITY_RISK_SOFT_BAN: int = 100
+    SECURITY_SOFT_BAN_HOURS: int = 48
+
+    # ─── ANTIGRAVITY OS v2: Feature Flags ───
+    FEATURE_CLI_MODE: bool = True
+    FEATURE_BUILD_WITH_ME: bool = True
+    FEATURE_STUMP_CHALLENGE: bool = True
+    FEATURE_TIME_MACHINE: bool = True
+    FEATURE_LIVE_BUILD_WIDGET: bool = True
+    FEATURE_VOICE_MODE: bool = True
+    FEATURE_DEBATE_MODE: bool = True
+    FEATURE_3D_CONSTELLATION: bool = True
+    FEATURE_WEB_RESEARCH: bool = True
+    FEATURE_OPPORTUNITY_AGENT: bool = False  # Private, enable manually
 
     # ─── CORS ───
     CORS_ORIGINS: list[str] = [

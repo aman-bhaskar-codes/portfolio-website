@@ -47,6 +47,7 @@ services:
       - ./backend:/app/backend
       - ./data:/app/data
     environment:
+      # ── V1: Core Infrastructure ──
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/portfolio_db
       - SYNC_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portfolio_db
       - OLLAMA_URL=http://host.docker.internal:11434
@@ -59,6 +60,52 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
+
+      # ── V2: Security Vault ──
+      - VAULT_ENCRYPTION_KEY=${VAULT_ENCRYPTION_KEY:-}
+
+      # ── V2: Circuit Breaker ──
+      - CB_FAILURE_THRESHOLD=5
+      - CB_TIMEOUT_SECONDS=60
+      - CB_SUCCESS_THRESHOLD=2
+
+      # ── V2: LLM Model Routing ──
+      - LLM_MODEL_HEAVY=phi4-mini
+      - LLM_MODEL_MEDIUM=llama3.2:3b
+      - LLM_MODEL_LIGHT=qwen2.5:3b
+      - LLM_DAILY_TOKEN_LIMIT_HEAVY=500000
+      - LLM_DAILY_TOKEN_LIMIT_MEDIUM=1000000
+      - LLM_DAILY_TOKEN_LIMIT_LIGHT=2000000
+
+      # ── V2: SSE / Streaming ──
+      - MAX_SSE_CONNECTIONS=500
+      - SSE_MAX_LIFETIME_SECONDS=300
+      - SSE_IDLE_TIMEOUT_SECONDS=60
+
+      # ── V2: Load Shedding ──
+      - LOAD_SHED_THRESHOLD_1=50
+      - LOAD_SHED_THRESHOLD_2=100
+      - LOAD_SHED_THRESHOLD_3=200
+      - LOAD_SHED_THRESHOLD_4=500
+
+      # ── V2: Security ──
+      - SECURITY_RISK_SCRUTINY=30
+      - SECURITY_RISK_CHALLENGE=50
+      - SECURITY_RISK_DELAY=75
+      - SECURITY_RISK_SOFT_BAN=100
+      - SECURITY_SOFT_BAN_HOURS=48
+
+      # ── V2: Feature Flags ──
+      - FEATURE_CLI_MODE=true
+      - FEATURE_BUILD_WITH_ME=true
+      - FEATURE_STUMP_CHALLENGE=true
+      - FEATURE_TIME_MACHINE=true
+      - FEATURE_LIVE_BUILD_WIDGET=true
+      - FEATURE_VOICE_MODE=true
+      - FEATURE_DEBATE_MODE=true
+      - FEATURE_3D_CONSTELLATION=true
+      - FEATURE_WEB_RESEARCH=true
+      - FEATURE_OPPORTUNITY_AGENT=false
     depends_on:
       postgres:
         condition: service_healthy

@@ -28,7 +28,11 @@ RUN touch /app/backend/__init__.py \
     /app/backend/tools/__init__.py \
     /app/backend/tasks/__init__.py \
     /app/backend/db/__init__.py \
-    /app/backend/observability/__init__.py
+    /app/backend/observability/__init__.py \
+    /app/backend/reliability/__init__.py \
+    /app/backend/security/__init__.py \
+    /app/backend/llm/__init__.py \
+    /app/backend/streaming/__init__.py
 
 EXPOSE 8000
 
