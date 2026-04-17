@@ -35,6 +35,15 @@
   <img src="https://img.shields.io/badge/Status-Production%20Ready-22C55E?style=for-the-badge"/>
 </p>
 
+<!-- SOCIAL LINKS -->
+<p>
+  <a href="https://github.com/aman-bhaskar-codes"><img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white"/></a>
+  <a href="https://www.linkedin.com/in/aman-bhaskar-18jan2005/"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white"/></a>
+  <a href="https://x.com/_aman_bhaskar"><img src="https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white"/></a>
+  <a href="https://www.instagram.com/mr.aman.bhaskar/?hl=en"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/></a>
+  <a href="mailto:amanbhaskarcodes@gmail.com"><img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white"/></a>
+</p>
+
 <br/>
 
 <!-- WAVY SEPARATOR -->

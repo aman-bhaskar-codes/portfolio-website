@@ -1,7 +1,7 @@
 "use client";
 
 import { SOCIAL_LINKS } from "@/lib/config/socials";
-import { Github, Linkedin, Twitter, Instagram } from "lucide-react";
+import { Github, Linkedin, Twitter, Instagram, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { springs, staggerContainer, staggerChild } from "@/lib/motion";
 
@@ -17,6 +17,7 @@ export default function SocialLinks() {
             <SocialIcon href={SOCIAL_LINKS.github} label="GitHub" Icon={Github} />
             <SocialIcon href={SOCIAL_LINKS.twitter} label="X" Icon={Twitter} />
             <SocialIcon href={SOCIAL_LINKS.instagram} label="Instagram" Icon={Instagram} />
+            <SocialIcon href={SOCIAL_LINKS.email} label="Email" Icon={Mail} />
         </motion.div>
     );
 }

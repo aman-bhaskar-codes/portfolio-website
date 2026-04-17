@@ -45,10 +45,11 @@ Philosophy: Intelligence over static code — building systems that think, learn
         category: "identity",
         title: "Social Links & Contact",
         content: `Aman Bhaskar's official social profiles and contact links:
-LinkedIn: https://www.linkedin.com/in/aman-bhaskar-28a4703a7/
+LinkedIn: https://www.linkedin.com/in/aman-bhaskar-18jan2005/
 GitHub: https://github.com/aman-bhaskar-codes
 X (Twitter): https://x.com/_aman_bhaskar
-Instagram: https://www.instagram.com/mr.aman.bhaskar/
+Instagram: https://www.instagram.com/mr.aman.bhaskar/?hl=en
+Email: amanbhaskarcodes@gmail.com
 Portfolio: This website — an advanced AI-powered portfolio platform.`,
         importance: 0.9,
         sourceType: "manual",
