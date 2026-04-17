@@ -63,7 +63,8 @@ python-multipart==0.0.20
 # ═══════════════════════════════════════════════════════════
 
 # ── Advanced RAG: ColBERT Late-Interaction Retrieval ──
-ragatouille==0.0.8
+# (Temporarily disabled due to LangChain v0.3 dependency conflicts)
+# ragatouille==0.0.8
 
 # ── Structured Output from Local LLMs ──
 outlines==0.1.11
@@ -82,7 +83,7 @@ boto3==1.36.20
 
 # ── NLP Preprocessing ──
 nltk==3.9.1
-spacy==3.8.4
+spacy==3.8.3
 
 # ── PDF Generation (Recruiter Briefs) ──
 weasyprint==63.1

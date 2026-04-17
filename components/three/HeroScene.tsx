@@ -1,3 +1,5 @@
+"use client";
+
 import { useRef, useMemo, useCallback } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
@@ -110,13 +112,15 @@ function ParticleField() {
             args={[undefined, undefined, PARTICLE_COUNT]}
             frustumCulled
         >
-            <sphereGeometry args={[1, 6, 6]} />
+            <sphereGeometry args={[1, 6, 6]}>
+                <instancedBufferAttribute attach="attributes-color" args={[colors, 3]} />
+            </sphereGeometry>
             <meshBasicMaterial
                 transparent
                 opacity={0.7}
                 depthWrite={false}
+                vertexColors={true}
             />
-            {/* Apply per-instance colors via the color attribute */}
         </instancedMesh>
     );
 }

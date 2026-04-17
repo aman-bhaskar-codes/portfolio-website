@@ -1,0 +1,185 @@
+'Log files:
+/Users/amanbhaskar/Library/Mobile Documents/com~apple~CloudDocs/Antigravity-demo/portfolio-website/.npm-cache/_logs/2026-04-17T11_27_18_140Z-debug-0.log
+
+# npm resolution error report
+
+While resolving: @langchain/community@1.1.20
+Found: zod@4.3.6
+node_modules/zod
+  zod@"^3.25.76 || ^4" from @langchain/classic@1.0.21
+  node_modules/@langchain/classic
+    @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+    node_modules/@langchain/community
+      @langchain/community@"^1.1.20" from the root project
+  zod@"^3.25.76 || ^4" from @langchain/community@1.1.20
+  node_modules/@langchain/community
+    @langchain/community@"^1.1.20" from the root project
+  zod@"^3.25.76 || ^4" from @langchain/core@1.1.29
+  node_modules/@langchain/core
+    peer @langchain/core@"^1.0.0" from @langchain/classic@1.0.21
+    node_modules/@langchain/classic
+      @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+      node_modules/@langchain/community
+        @langchain/community@"^1.1.20" from the root project
+    peer @langchain/core@"^1.1.29" from @langchain/community@1.1.20
+    node_modules/@langchain/community
+      @langchain/community@"^1.1.20" from the root project
+    peer @langchain/core@"^1.1.16" from @langchain/langgraph@1.1.4
+    node_modules/@langchain/langgraph
+      @langchain/langgraph@"^1.1.2" from langchain@1.2.24
+      node_modules/langchain
+        langchain@"^1.2.24" from the root project
+    peer @langchain/core@"^1.0.1" from @langchain/langgraph-checkpoint@1.0.0
+    node_modules/@langchain/langgraph-checkpoint
+      @langchain/langgraph-checkpoint@"^1.0.0" from @langchain/langgraph@1.1.4
+      node_modules/@langchain/langgraph
+        @langchain/langgraph@"^1.1.2" from langchain@1.2.24
+        node_modules/langchain
+          langchain@"^1.2.24" from the root project
+      @langchain/langgraph-checkpoint@"^1.0.0" from langchain@1.2.24
+      node_modules/langchain
+        langchain@"^1.2.24" from the root project
+    peerOptional @langchain/core@"^1.1.16" from @langchain/langgraph-sdk@1.6.2
+    node_modules/@langchain/langgraph-sdk
+      @langchain/langgraph-sdk@"~1.6.0" from @langchain/langgraph@1.1.4
+      node_modules/@langchain/langgraph
+        @langchain/langgraph@"^1.1.2" from langchain@1.2.24
+        node_modules/langchain
+          langchain@"^1.2.24" from the root project
+    peer @langchain/core@"^1.1.29" from @langchain/openai@1.2.11
+    node_modules/@langchain/openai
+      @langchain/openai@"1.2.11" from @langchain/classic@1.0.21
+      node_modules/@langchain/classic
+        @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+        node_modules/@langchain/community
+          @langchain/community@"^1.1.20" from the root project
+      @langchain/openai@"1.2.11" from @langchain/community@1.1.20
+      node_modules/@langchain/community
+        @langchain/community@"^1.1.20" from the root project
+    peer @langchain/core@"^1.0.0" from @langchain/textsplitters@1.0.1
+    node_modules/@langchain/textsplitters
+      @langchain/textsplitters@"1.0.1" from @langchain/classic@1.0.21
+      node_modules/@langchain/classic
+        @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+        node_modules/@langchain/community
+          @langchain/community@"^1.1.20" from the root project
+      @langchain/textsplitters@"^1.0.1" from the root project
+    peer @langchain/core@"^1.1.24" from langchain@1.2.24
+    node_modules/langchain
+      langchain@"^1.2.24" from the root project
+    @langchain/core@"^1.1.29" from the root project
+  peer zod@"^3.25.32 || ^4.2.0" from @langchain/langgraph@1.1.4
+  node_modules/@langchain/langgraph
+    @langchain/langgraph@"^1.1.2" from langchain@1.2.24
+    node_modules/langchain
+      langchain@"^1.2.24" from the root project
+  zod@"^3.25.76 || ^4" from @langchain/openai@1.2.11
+  node_modules/@langchain/openai
+    @langchain/openai@"1.2.11" from @langchain/classic@1.0.21
+    node_modules/@langchain/classic
+      @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+      node_modules/@langchain/community
+        @langchain/community@"^1.1.20" from the root project
+    @langchain/openai@"1.2.11" from @langchain/community@1.1.20
+    node_modules/@langchain/community
+      @langchain/community@"^1.1.20" from the root project
+  zod@"^3.25.76 || ^4" from langchain@1.2.24
+  node_modules/langchain
+    langchain@"^1.2.24" from the root project
+  peerOptional zod@"^3.25 || ^4.0" from openai@6.25.0
+  node_modules/openai
+    peer openai@"*" from @langchain/community@1.1.20
+    node_modules/@langchain/community
+      @langchain/community@"^1.1.20" from the root project
+    openai@"^6.24.0" from @langchain/openai@1.2.11
+    node_modules/@langchain/openai
+      @langchain/openai@"1.2.11" from @langchain/classic@1.0.21
+      node_modules/@langchain/classic
+        @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+        node_modules/@langchain/community
+          @langchain/community@"^1.1.20" from the root project
+      @langchain/openai@"1.2.11" from @langchain/community@1.1.20
+      node_modules/@langchain/community
+        @langchain/community@"^1.1.20" from the root project
+    peerOptional openai@"*" from langsmith@0.5.4
+    node_modules/langsmith
+      optional langsmith@">=0.4.0 <1.0.0" from @langchain/classic@1.0.21
+      node_modules/@langchain/classic
+        @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+        node_modules/@langchain/community
+          @langchain/community@"^1.1.20" from the root project
+      langsmith@">=0.5.0 <1.0.0" from @langchain/core@1.1.29
+      node_modules/@langchain/core
+        peer @langchain/core@"^1.0.0" from @langchain/classic@1.0.21
+        node_modules/@langchain/classic
+          @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+          node_modules/@langchain/community
+            @langchain/community@"^1.1.20" from the root project
+        peer @langchain/core@"^1.1.29" from @langchain/community@1.1.20
+        node_modules/@langchain/community
+          @langchain/community@"^1.1.20" from the root project
+        peer @langchain/core@"^1.1.16" from @langchain/langgraph@1.1.4
+        node_modules/@langchain/langgraph
+          @langchain/langgraph@"^1.1.2" from langchain@1.2.24
+          node_modules/langchain
+            langchain@"^1.2.24" from the root project
+        peer @langchain/core@"^1.0.1" from @langchain/langgraph-checkpoint@1.0.0
+        node_modules/@langchain/langgraph-checkpoint
+          @langchain/langgraph-checkpoint@"^1.0.0" from @langchain/langgraph@1.1.4
+          node_modules/@langchain/langgraph
+            @langchain/langgraph@"^1.1.2" from langchain@1.2.24
+            node_modules/langchain
+              langchain@"^1.2.24" from the root project
+          @langchain/langgraph-checkpoint@"^1.0.0" from langchain@1.2.24
+          node_modules/langchain
+            langchain@"^1.2.24" from the root project
+        peerOptional @langchain/core@"^1.1.16" from @langchain/langgraph-sdk@1.6.2
+        node_modules/@langchain/langgraph-sdk
+          @langchain/langgraph-sdk@"~1.6.0" from @langchain/langgraph@1.1.4
+          node_modules/@langchain/langgraph
+            @langchain/langgraph@"^1.1.2" from langchain@1.2.24
+            node_modules/langchain
+              langchain@"^1.2.24" from the root project
+        peer @langchain/core@"^1.1.29" from @langchain/openai@1.2.11
+        node_modules/@langchain/openai
+          @langchain/openai@"1.2.11" from @langchain/classic@1.0.21
+          node_modules/@langchain/classic
+            @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+            node_modules/@langchain/community
+              @langchain/community@"^1.1.20" from the root project
+          @langchain/openai@"1.2.11" from @langchain/community@1.1.20
+          node_modules/@langchain/community
+            @langchain/community@"^1.1.20" from the root project
+        peer @langchain/core@"^1.0.0" from @langchain/textsplitters@1.0.1
+        node_modules/@langchain/textsplitters
+          @langchain/textsplitters@"1.0.1" from @langchain/classic@1.0.21
+          node_modules/@langchain/classic
+            @langchain/classic@"1.0.21" from @langchain/community@1.1.20
+            node_modules/@langchain/community
+              @langchain/community@"^1.1.20" from the root project
+          @langchain/textsplitters@"^1.0.1" from the root project
+        peer @langchain/core@"^1.1.24" from langchain@1.2.24
+        node_modules/langchain
+          langchain@"^1.2.24" from the root project
+        @langchain/core@"^1.1.29" from the root project
+      langsmith@">=0.5.0 <1.0.0" from langchain@1.2.24
+      node_modules/langchain
+        langchain@"^1.2.24" from the root project
+  zod@"^4.3.6" from the root project
+
+Could not resolve dependency:
+peer @browserbasehq/stagehand@"^1.0.0" from @langchain/community@1.1.20
+node_modules/@langchain/community
+  @langchain/community@"^1.1.20" from the root project
+
+Conflicting peer dependency: zod@3.25.76
+node_modules/zod
+  peer zod@"^3.23.8" from @browserbasehq/stagehand@1.14.0
+  node_modules/@browserbasehq/stagehand
+    peer @browserbasehq/stagehand@"^1.0.0" from @langchain/community@1.1.20
+    node_modules/@langchain/community
+      @langchain/community@"^1.1.20" from the root project
+
+Fix the upstream dependency conflict, or retry
+this command with --force or --legacy-peer-deps
+to accept an incorrect (and potentially broken) dependency resolution.

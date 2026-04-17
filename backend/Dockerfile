@@ -52,13 +52,13 @@ RUN for dir in \
 RUN touch backend/__init__.py
 
 # Copy data placeholders
-COPY data/ /data/ 2>/dev/null || true
+COPY data/ /data/
 
 # Create data directories
 RUN mkdir -p /data/documents /data/virtual_work /data/models /data/analytics
 
 # Copy tests
-COPY tests/ ./tests/ 2>/dev/null || true
+COPY tests/ ./tests/
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

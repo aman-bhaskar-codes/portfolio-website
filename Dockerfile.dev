@@ -6,18 +6,16 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install dependencies first (cached layer)
+# Install dependencies and Prisma targets together
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
-
-# Generate Prisma Client
 COPY prisma ./prisma
-RUN npx prisma generate
+ENV PRISMA_CLIENT_ENGINE_TYPE=binary
+RUN npm ci --legacy-peer-deps
 
 # Copy application source (hot-reload watches these via bind mount)
 COPY . .
 
 EXPOSE 3334
 
-# Use the dev script from package.json
-CMD ["npm", "run", "dev"]
+# Generate Prisma Client dynamically at runtime to avoid Alpine/macOS architecture clashes, then boot Next.js
+CMD ["sh", "-c", "npx prisma generate && npm run dev"]

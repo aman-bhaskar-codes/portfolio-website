@@ -1,0 +1,233 @@
+0 verbose cli /opt/homebrew/Cellar/node/25.6.1/bin/node /opt/homebrew/bin/npm
+1 info using npm@11.9.0
+2 info using node@v25.6.1
+3 silly config load:file:/opt/homebrew/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/amanbhaskar/Library/Mobile Documents/com~apple~CloudDocs/Antigravity-demo/portfolio-website/.npmrc
+5 silly config load:file:/Users/amanbhaskar/.npmrc
+6 silly config load:file:/opt/homebrew/etc/npmrc
+7 verbose title npm install mermaid@^10.9.1 @types/mermaid@^9.2.0
+8 verbose argv "install" "--cache" ".npm-cache" "mermaid@^10.9.1" "@types/mermaid@^9.2.0"
+9 verbose logfile logs-max:10 dir:/Users/amanbhaskar/Library/Mobile Documents/com~apple~CloudDocs/Antigravity-demo/portfolio-website/.npm-cache/_logs/2026-04-17T11_27_18_140Z-
+10 verbose logfile /Users/amanbhaskar/Library/Mobile Documents/com~apple~CloudDocs/Antigravity-demo/portfolio-website/.npm-cache/_logs/2026-04-17T11_27_18_140Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+13 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+14 silly idealTree buildDeps
+15 silly fetch manifest micro@^10.0.1
+16 silly packumentCache full:https://registry.npmjs.org/micro cache-miss
+17 http fetch GET 200 https://registry.npmjs.org/npm 236ms
+18 http fetch GET 200 https://registry.npmjs.org/micro 153ms (cache miss)
+19 silly packumentCache full:https://registry.npmjs.org/micro set size:undefined disposed:false
+20 silly fetch manifest mermaid@^10.9.1
+21 silly packumentCache full:https://registry.npmjs.org/mermaid cache-miss
+22 http fetch GET 200 https://registry.npmjs.org/mermaid 63ms (cache miss)
+23 silly packumentCache full:https://registry.npmjs.org/mermaid set size:undefined disposed:false
+24 silly fetch manifest @types/mermaid@^9.2.0
+25 silly packumentCache full:https://registry.npmjs.org/@types%2fmermaid cache-miss
+26 http fetch GET 200 https://registry.npmjs.org/@types%2fmermaid 39ms (cache miss)
+27 silly packumentCache full:https://registry.npmjs.org/@types%2fmermaid set size:undefined disposed:false
+28 silly placeDep ROOT @types/mermaid@9.2.0 OK for: portfolio-website@1.0.0 want: ^9.2.0
+29 silly placeDep ROOT mermaid@10.9.5 OK for: portfolio-website@1.0.0 want: ^10.9.1
+30 silly placeDep ROOT micro@10.0.1 OK for: portfolio-website@1.0.0 want: ^10.0.1
+31 silly fetch manifest mermaid@*
+32 silly packumentCache full:https://registry.npmjs.org/mermaid cache-miss
+33 silly fetch manifest d3@^7.4.0
+34 silly packumentCache full:https://registry.npmjs.org/d3 cache-miss
+35 silly fetch manifest uuid@^9.0.0
+36 silly packumentCache full:https://registry.npmjs.org/uuid cache-miss
+37 silly fetch manifest dayjs@^1.11.7
+38 silly packumentCache full:https://registry.npmjs.org/dayjs cache-miss
+39 silly fetch manifest elkjs@^0.9.0
+40 silly packumentCache full:https://registry.npmjs.org/elkjs cache-miss
+41 silly fetch manifest katex@^0.16.9
+42 silly packumentCache full:https://registry.npmjs.org/katex cache-miss
+43 silly fetch manifest khroma@^2.0.0
+44 silly packumentCache full:https://registry.npmjs.org/khroma cache-miss
+45 http cache https://registry.npmjs.org/mermaid 10ms (cache hit)
+46 silly packumentCache full:https://registry.npmjs.org/mermaid set size:1194245 disposed:false
+47 silly fetch manifest stylis@^4.1.3
+48 silly packumentCache full:https://registry.npmjs.org/stylis cache-miss
+49 http fetch GET 200 https://registry.npmjs.org/uuid 35ms (cache miss)
+50 silly packumentCache full:https://registry.npmjs.org/uuid set size:undefined disposed:false
+51 silly fetch manifest cytoscape@^3.28.1
+52 silly packumentCache full:https://registry.npmjs.org/cytoscape cache-miss
+53 http fetch GET 200 https://registry.npmjs.org/dayjs 114ms (cache miss)
+54 silly packumentCache full:https://registry.npmjs.org/dayjs set size:undefined disposed:false
+55 silly fetch manifest d3-sankey@^0.12.3
+56 silly packumentCache full:https://registry.npmjs.org/d3-sankey cache-miss
+57 http fetch GET 200 https://registry.npmjs.org/katex 119ms (cache miss)
+58 silly packumentCache full:https://registry.npmjs.org/katex set size:undefined disposed:false
+59 silly fetch manifest dompurify@^3.2.4
+60 silly packumentCache full:https://registry.npmjs.org/dompurify cache-miss
+61 http fetch GET 200 https://registry.npmjs.org/stylis 143ms (cache miss)
+62 silly packumentCache full:https://registry.npmjs.org/stylis set size:undefined disposed:false
+63 silly fetch manifest lodash-es@^4.17.21
+64 silly packumentCache full:https://registry.npmjs.org/lodash-es cache-miss
+65 http fetch GET 200 https://registry.npmjs.org/dompurify 37ms (cache miss)
+66 silly packumentCache full:https://registry.npmjs.org/dompurify set size:undefined disposed:false
+67 silly fetch manifest ts-dedent@^2.2.0
+68 silly packumentCache full:https://registry.npmjs.org/ts-dedent cache-miss
+69 http fetch GET 200 https://registry.npmjs.org/ts-dedent 29ms (cache miss)
+70 silly packumentCache full:https://registry.npmjs.org/ts-dedent set size:undefined disposed:false
+71 silly fetch manifest web-worker@^1.2.0
+72 silly packumentCache full:https://registry.npmjs.org/web-worker cache-miss
+73 http fetch GET 200 https://registry.npmjs.org/lodash-es 36ms (cache miss)
+74 silly packumentCache full:https://registry.npmjs.org/lodash-es set size:undefined disposed:false
+75 silly fetch manifest dagre-d3-es@7.0.13
+76 silly packumentCache full:https://registry.npmjs.org/dagre-d3-es cache-miss
+77 http fetch GET 200 https://registry.npmjs.org/d3 315ms (cache miss)
+78 silly packumentCache full:https://registry.npmjs.org/d3 set size:undefined disposed:false
+79 silly fetch manifest cytoscape-cose-bilkent@^4.1.0
+80 silly packumentCache full:https://registry.npmjs.org/cytoscape-cose-bilkent cache-miss
+81 http fetch GET 200 https://registry.npmjs.org/elkjs 369ms (cache miss)
+82 silly packumentCache full:https://registry.npmjs.org/elkjs set size:undefined disposed:false
+83 silly fetch manifest @braintree/sanitize-url@^6.0.1
+84 silly packumentCache full:https://registry.npmjs.org/@braintree%2fsanitize-url cache-miss
+85 http fetch GET 200 https://registry.npmjs.org/khroma 397ms (cache miss)
+86 silly packumentCache full:https://registry.npmjs.org/khroma set size:undefined disposed:false
+87 silly fetch manifest mdast-util-from-markdown@^1.3.0
+88 silly packumentCache full:https://registry.npmjs.org/mdast-util-from-markdown cache-miss
+89 http fetch GET 200 https://registry.npmjs.org/@braintree%2fsanitize-url 42ms (cache miss)
+90 silly packumentCache full:https://registry.npmjs.org/@braintree%2fsanitize-url set size:undefined disposed:false
+91 silly fetch manifest non-layered-tidy-tree-layout@^2.0.2
+92 silly packumentCache full:https://registry.npmjs.org/non-layered-tidy-tree-layout cache-miss
+93 http fetch GET 200 https://registry.npmjs.org/d3-sankey 314ms (cache miss)
+94 silly packumentCache full:https://registry.npmjs.org/d3-sankey set size:undefined disposed:false
+95 silly fetch manifest arg@4.1.0
+96 silly packumentCache full:https://registry.npmjs.org/arg cache-miss
+97 http fetch GET 200 https://registry.npmjs.org/mdast-util-from-markdown 34ms (cache miss)
+98 silly packumentCache full:https://registry.npmjs.org/mdast-util-from-markdown set size:undefined disposed:false
+99 silly fetch manifest raw-body@2.4.1
+100 silly packumentCache full:https://registry.npmjs.org/raw-body cache-miss
+101 http fetch GET 200 https://registry.npmjs.org/raw-body 35ms (cache miss)
+102 silly packumentCache full:https://registry.npmjs.org/raw-body set size:undefined disposed:false
+103 silly fetch manifest content-type@1.0.4
+104 silly packumentCache full:https://registry.npmjs.org/content-type cache-miss
+105 http fetch GET 200 https://registry.npmjs.org/arg 40ms (cache miss)
+106 silly packumentCache full:https://registry.npmjs.org/arg set size:undefined disposed:false
+107 http fetch GET 200 https://registry.npmjs.org/content-type 32ms (cache miss)
+108 silly packumentCache full:https://registry.npmjs.org/content-type set size:undefined disposed:false
+109 http fetch GET 200 https://registry.npmjs.org/non-layered-tidy-tree-layout 411ms (cache miss)
+110 silly packumentCache full:https://registry.npmjs.org/non-layered-tidy-tree-layout set size:undefined disposed:false
+111 http fetch GET 200 https://registry.npmjs.org/cytoscape 834ms (cache miss)
+112 silly packumentCache full:https://registry.npmjs.org/cytoscape set size:undefined disposed:false
+113 http fetch GET 200 https://registry.npmjs.org/dagre-d3-es 831ms (cache miss)
+114 silly packumentCache full:https://registry.npmjs.org/dagre-d3-es set size:undefined disposed:false
+115 http fetch GET 200 https://registry.npmjs.org/web-worker 842ms (cache miss)
+116 silly packumentCache full:https://registry.npmjs.org/web-worker set size:undefined disposed:false
+117 http fetch GET 200 https://registry.npmjs.org/cytoscape-cose-bilkent 827ms (cache miss)
+118 silly packumentCache full:https://registry.npmjs.org/cytoscape-cose-bilkent set size:undefined disposed:false
+119 silly fetch manifest @browserbasehq/stagehand@^1.0.0
+120 silly packumentCache full:https://registry.npmjs.org/@browserbasehq%2fstagehand cache-miss
+121 http fetch GET 200 https://registry.npmjs.org/@browserbasehq%2fstagehand 76ms (cache miss)
+122 silly packumentCache full:https://registry.npmjs.org/@browserbasehq%2fstagehand set size:undefined disposed:false
+123 silly fetch manifest @playwright/test@^1.42.1
+124 silly packumentCache full:https://registry.npmjs.org/@playwright%2ftest cache-miss
+125 http fetch GET 200 https://registry.npmjs.org/@playwright%2ftest 457ms (cache miss)
+126 silly packumentCache full:https://registry.npmjs.org/@playwright%2ftest set size:undefined disposed:false
+127 silly fetch manifest deepmerge@^4.3.1
+128 silly packumentCache full:https://registry.npmjs.org/deepmerge cache-miss
+129 http fetch GET 200 https://registry.npmjs.org/deepmerge 34ms (cache miss)
+130 silly packumentCache full:https://registry.npmjs.org/deepmerge set size:undefined disposed:false
+131 silly fetch manifest dotenv@^16.4.5
+132 silly packumentCache full:https://registry.npmjs.org/dotenv cache-miss
+133 http fetch GET 200 https://registry.npmjs.org/dotenv 33ms (cache miss)
+134 silly packumentCache full:https://registry.npmjs.org/dotenv set size:undefined disposed:false
+135 silly fetch manifest openai@*
+136 silly packumentCache full:https://registry.npmjs.org/openai cache-miss
+137 http fetch GET 200 https://registry.npmjs.org/openai 49ms (cache miss)
+138 silly packumentCache full:https://registry.npmjs.org/openai set size:undefined disposed:false
+139 silly fetch manifest openai@^4.62.1
+140 silly packumentCache full:https://registry.npmjs.org/openai cache-miss
+141 http cache https://registry.npmjs.org/openai 7ms (cache hit)
+142 silly packumentCache full:https://registry.npmjs.org/openai set size:4851022 disposed:false
+143 silly fetch manifest ws@^8.14.2
+144 silly packumentCache full:https://registry.npmjs.org/ws cache-miss
+145 http fetch GET 200 https://registry.npmjs.org/ws 35ms (cache miss)
+146 silly packumentCache full:https://registry.npmjs.org/ws set size:undefined disposed:false
+147 silly fetch manifest bufferutil@^4.0.1
+148 silly packumentCache full:https://registry.npmjs.org/bufferutil cache-miss
+149 http fetch GET 200 https://registry.npmjs.org/bufferutil 32ms (cache miss)
+150 silly packumentCache full:https://registry.npmjs.org/bufferutil set size:undefined disposed:false
+151 silly fetch manifest utf-8-validate@>=5.0.2
+152 silly packumentCache full:https://registry.npmjs.org/utf-8-validate cache-miss
+153 http fetch GET 200 https://registry.npmjs.org/utf-8-validate 32ms (cache miss)
+154 silly packumentCache full:https://registry.npmjs.org/utf-8-validate set size:undefined disposed:false
+155 silly fetch manifest zod@^3.25.76 || ^4
+156 silly packumentCache full:https://registry.npmjs.org/zod cache-miss
+157 http fetch GET 200 https://registry.npmjs.org/zod 49ms (cache miss)
+158 silly packumentCache full:https://registry.npmjs.org/zod set size:undefined disposed:false
+159 silly fetch manifest zod@^3.23.8
+160 silly packumentCache full:https://registry.npmjs.org/zod cache-miss
+161 http cache https://registry.npmjs.org/zod 4ms (cache hit)
+162 silly packumentCache full:https://registry.npmjs.org/zod set size:3489329 disposed:false
+163 silly fetch manifest @ibm-cloud/watsonx-ai@*
+164 silly packumentCache full:https://registry.npmjs.org/@ibm-cloud%2fwatsonx-ai cache-miss
+165 http fetch GET 200 https://registry.npmjs.org/@ibm-cloud%2fwatsonx-ai 41ms (cache miss)
+166 silly packumentCache full:https://registry.npmjs.org/@ibm-cloud%2fwatsonx-ai set size:undefined disposed:false
+167 silly fetch manifest ibm-cloud-sdk-core@*
+168 silly packumentCache full:https://registry.npmjs.org/ibm-cloud-sdk-core cache-miss
+169 http fetch GET 200 https://registry.npmjs.org/ibm-cloud-sdk-core 36ms (cache miss)
+170 silly packumentCache full:https://registry.npmjs.org/ibm-cloud-sdk-core set size:undefined disposed:false
+171 verbose stack Error: could not resolve
+171 verbose stack     at PlaceDep.failPeerConflict (/opt/homebrew/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/place-dep.js:503:25)
+171 verbose stack     at new PlaceDep (/opt/homebrew/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/place-dep.js:157:21)
+171 verbose stack     at #buildDepStep (/opt/homebrew/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:932:18)
+171 verbose stack     at async Arborist.buildIdealTree (/opt/homebrew/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:170:7)
+171 verbose stack     at async Promise.all (index 1)
+171 verbose stack     at async Arborist.reify (/opt/homebrew/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:110:5)
+171 verbose stack     at async Install.exec (/opt/homebrew/lib/node_modules/npm/lib/commands/install.js:151:5)
+171 verbose stack     at async Npm.exec (/opt/homebrew/lib/node_modules/npm/lib/npm.js:208:9)
+171 verbose stack     at async module.exports (/opt/homebrew/lib/node_modules/npm/lib/cli/entry.js:67:5)
+172 error code ERESOLVE
+173 error ERESOLVE could not resolve
+174 error
+175 error While resolving: @langchain/community@1.1.20
+175 error Found: zod@4.3.6[2m[22m
+175 error [2mnode_modules/zod[22m
+175 error   zod@"^3.25.76 || ^4" from @langchain/classic@1.0.21[2m[22m
+175 error   [2mnode_modules/@langchain/classic[22m
+175 error     @langchain/classic@"1.0.21" from @langchain/community@1.1.20[2m[22m
+175 error     [2mnode_modules/@langchain/community[22m
+175 error       @langchain/community@"^1.1.20" from the root project
+175 error   zod@"^3.25.76 || ^4" from @langchain/community@1.1.20[2m[22m
+175 error   [2mnode_modules/@langchain/community[22m
+175 error     @langchain/community@"^1.1.20" from the root project
+175 error   6 more (@langchain/core, @langchain/langgraph, ...)
+175 error
+175 error Could not resolve dependency:
+175 error [95mpeer[39m @browserbasehq/stagehand@"^1.0.0" from @langchain/community@1.1.20[2m[22m
+175 error [2mnode_modules/@langchain/community[22m
+175 error   @langchain/community@"^1.1.20" from the root project
+175 error
+175 error Conflicting peer dependency: zod@3.25.76[2m[22m
+175 error [2mnode_modules/zod[22m
+175 error   [95mpeer[39m zod@"^3.23.8" from @browserbasehq/stagehand@1.14.0[2m[22m
+175 error   [2mnode_modules/@browserbasehq/stagehand[22m
+175 error     [95mpeer[39m @browserbasehq/stagehand@"^1.0.0" from @langchain/community@1.1.20[2m[22m
+175 error     [2mnode_modules/@langchain/community[22m
+175 error       @langchain/community@"^1.1.20" from the root project
+175 error
+175 error Fix the upstream dependency conflict, or retry
+175 error this command with --force or --legacy-peer-deps
+175 error to accept an incorrect (and potentially broken) dependency resolution.
+176 error
+176 error
+176 error For a full report see:
+176 error /Users/amanbhaskar/Library/Mobile Documents/com~apple~CloudDocs/Antigravity-demo/portfolio-website/.npm-cache/_logs/2026-04-17T11_27_18_140Z-eresolve-report.txt
+177 silly unfinished npm timer reify 1776425238292
+178 silly unfinished npm timer reify:loadTrees 1776425238293
+179 silly unfinished npm timer idealTree:buildDeps 1776425238376
+180 silly unfinished npm timer idealTree:node_modules/@langchain/community 1776425239797
+181 verbose cwd /Users/amanbhaskar/Library/Mobile Documents/com~apple~CloudDocs/Antigravity-demo/portfolio-website
+182 verbose os Darwin 25.4.0
+183 verbose node v25.6.1
+184 verbose npm  v11.9.0
+185 notice
+185 notice New [33mminor[39m version of npm available! [33m11.9.0[39m -> [34m11.12.1[39m
+185 notice Changelog: [34mhttps://github.com/npm/cli/releases/tag/v11.12.1[39m
+185 notice To update run: [4mnpm install -g npm@11.12.1[24m
+185 notice  { force: true, Symbol(proc-log.meta): true }
+186 verbose exit 1
+187 verbose code 1
+188 error A complete log of this run can be found in: /Users/amanbhaskar/Library/Mobile Documents/com~apple~CloudDocs/Antigravity-demo/portfolio-website/.npm-cache/_logs/2026-04-17T11_27_18_140Z-debug-0.log
