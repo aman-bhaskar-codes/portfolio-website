@@ -10,6 +10,7 @@ __pycache__/
 venv/
 env/
 .env.*
+!.env.genesis
 ollama.log
 coverage/
 .pytest_cache/

@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════
-# ANTIGRAVITY OS v3 — Python Dependencies (Omega Build)
+# ANTIGRAVITY OS v4 — Python Dependencies (Genesis Build)
 # ═══════════════════════════════════════════════════════════
 
 # ── Core Framework ──
