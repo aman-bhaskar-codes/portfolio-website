@@ -277,13 +277,39 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"⚠️ Ragas config failed (non-fatal): {e}")
 
-    logger.info("✅ ANTIGRAVITY OS v3 (Omega Build) — All systems operational")
+    # ═══════════════════════════════════════════════════════
+    # V4 STARTUP — GENESIS BUILD
+    # ═══════════════════════════════════════════════════════
+
+    # ── V4: Async Ollama Client ──
+    try:
+        from backend.llm.ollama_client import ollama_client
+        is_ready = await ollama_client.check_availability()
+        if is_ready:
+            logger.info("✅ Ollama client connected")
+        else:
+            logger.warning("⚠️ Ollama not reachable (will retry on first request)")
+    except Exception as e:
+        logger.warning(f"⚠️ Ollama client init failed (non-fatal): {e}")
+
+    # ── V4: Model Router ──
+    try:
+        from backend.llm.router import model_router
+        from backend.config.settings import settings as s
+        model_router.configure(
+            cloud_api_key=getattr(s, 'ANTHROPIC_API_KEY', '') or '',
+        )
+        logger.info("✅ Model router configured")
+    except Exception as e:
+        logger.warning(f"⚠️ Model router config failed (non-fatal): {e}")
+
+    logger.info("✅ ANTIGRAVITY OS v4 (Genesis Build) — All systems operational")
     yield
 
     # ═══════════════════════════════════════════════════════
     # SHUTDOWN
     # ═══════════════════════════════════════════════════════
-    logger.info("🛑 Shutting down ANTIGRAVITY OS v3...")
+    logger.info("🛑 Shutting down ANTIGRAVITY OS v4...")
 
     # V3 shutdown: DuckDB
     try:
@@ -329,14 +355,14 @@ def create_app() -> FastAPI:
     """Application factory pattern."""
 
     app = FastAPI(
-        title="ANTIGRAVITY OS v3 API",
+        title="ANTIGRAVITY OS v4 API",
         description=(
-            "AI-integrated personal portfolio backend — Omega Build. "
-            "LangGraph orchestration, advanced RAG (ColBERT + cross-encoder), "
-            "DSPy prompt optimization, local vision pipeline, "
-            "DuckDB analytics, MinIO storage, ntfy notifications."
+            "AI-integrated personal portfolio backend — Genesis Build. "
+            "LangGraph orchestration, hybrid RAG (HyDE + ColBERT + RRF), "
+            "3-tier memory, knowledge graph, visitor intelligence, "
+            "DSPy prompt optimization, DuckDB analytics."
         ),
-        version="3.0.0",
+        version="4.0.0",
         lifespan=lifespan,
         docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
         redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
@@ -370,9 +396,33 @@ def create_app() -> FastAPI:
     from backend.api.v2 import router as v2_router
     app.include_router(v2_router)
 
+    # ── ANTIGRAVITY OS V4 Routes (Genesis Build) ──
+    try:
+        from backend.api.chat import router as chat_router
+        from backend.api.health import router as health_router
+        from backend.api.brief import router as brief_router
+        from backend.api.webhook import router as webhook_router
+
+        app.include_router(chat_router)
+        app.include_router(health_router)
+        app.include_router(brief_router)
+        app.include_router(webhook_router)
+        logger.info("✅ V4 API routers mounted")
+    except ImportError as e:
+        logger.warning(f"⚠️ Some V4 routers could not load: {e}")
+
     # ── Observability ──
     from backend.observability.metrics import setup_observability
     setup_observability(app)
+
+    # ── Root Health Endpoint (Docker healthcheck hits /health) ──
+    @app.get("/health")
+    async def root_health():
+        return {"status": "ok", "version": "4.0.0", "service": "antigravity-api"}
+
+    @app.get("/api/ping")
+    async def ping():
+        return {"pong": True}
 
     return app
 

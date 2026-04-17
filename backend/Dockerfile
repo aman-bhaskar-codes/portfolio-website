@@ -2,10 +2,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# System deps for psycopg2, numpy, etc.
+# System deps for psycopg2, numpy, healthcheck curl, etc.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps
@@ -38,19 +39,14 @@ RUN touch /app/backend/__init__.py \
     /app/backend/notifications/__init__.py \
     /app/backend/evaluation/__init__.py \
     /app/backend/optimization/__init__.py \
+    /app/backend/intelligence/__init__.py \
+    /app/backend/knowledge_graph/__init__.py \
     /app/backend/session/__init__.py \
     /app/backend/twin/__init__.py \
-    /app/backend/voice/__init__.py \
-    /app/backend/reasoning/__init__.py \
-    /app/backend/redis_cache/__init__.py \
-    /app/backend/reflection/__init__.py \
-    /app/backend/retrieval/__init__.py \
-    /app/backend/ranking/__init__.py \
-    /app/backend/rl/__init__.py \
-    /app/backend/rl_memory/__init__.py
+    /app/backend/voice/__init__.py
 
-# Create data directories for V3
-RUN mkdir -p /app/data/analytics/parquet /app/data/security /app/data/engagement
+# Create data directories for V4
+RUN mkdir -p /app/data/analytics/parquet /app/data/security /app/data/engagement /app/data/documents
 
 EXPOSE 8000
 

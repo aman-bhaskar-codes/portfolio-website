@@ -1,257 +1,106 @@
 """
 ═══════════════════════════════════════════════════════════
-Company Resolver — IP → Company mapping + tech stack context
+ANTIGRAVITY OS v4 — Company Resolver
 ═══════════════════════════════════════════════════════════
 
-Resolves visitor IP addresses to company profiles using:
-  1. ip-api.com (free, 45 req/min)
-  2. Reverse DNS lookup
-  3. Known company CIDR/domain matching
-  4. Pre-loaded tech stack database (Stackshare-style)
-
-Provides CompanyContext for persona-aware prompt injection.
+Resolves visitor IP addresses to company domains using MaxMind or APIs.
+Fails open gracefully if no database is present.
 """
 
 from __future__ import annotations
 
 import logging
-import socket
-from typing import Dict, List, Optional
-
-import httpx
-from pydantic import BaseModel, Field
-
-from backend.intelligence.visitor_classifier import CompanyProfile
+from pathlib import Path
 
 logger = logging.getLogger("portfolio.intelligence.company")
 
 
-# ═══════════════════════════════════════════════════════════
-# COMPANY CONTEXT (Pre-computed for prompt injection)
-# ═══════════════════════════════════════════════════════════
-
-class CompanyContext(BaseModel):
-    """Full company context for prompt injection."""
-    profile: CompanyProfile
-    relevant_projects: List[str] = Field(default_factory=list)
-    tech_overlap: List[str] = Field(default_factory=list)
-    context_string: str = ""  # Pre-built injection string
-
-
-# ═══════════════════════════════════════════════════════════
-# KNOWN COMPANY TECH STACKS
-# ═══════════════════════════════════════════════════════════
-
-COMPANY_TECH_STACKS: Dict[str, Dict] = {
-    "google.com": {
-        "name": "Google",
-        "stack": ["Go", "C++", "Python", "Kubernetes", "Bigtable", "Spanner", "gRPC"],
-        "industry": "technology",
-        "is_faang": True,
-    },
-    "meta.com": {
-        "name": "Meta",
-        "stack": ["Python", "React", "C++", "Hack", "MySQL", "Cassandra", "PyTorch"],
-        "industry": "technology",
-        "is_faang": True,
-    },
-    "apple.com": {
-        "name": "Apple",
-        "stack": ["Swift", "Objective-C", "Python", "C++", "Kubernetes"],
-        "industry": "technology",
-        "is_faang": True,
-    },
-    "amazon.com": {
-        "name": "Amazon",
-        "stack": ["Java", "Python", "Go", "DynamoDB", "SQS", "Lambda", "ECS"],
-        "industry": "technology",
-        "is_faang": True,
-    },
-    "microsoft.com": {
-        "name": "Microsoft",
-        "stack": ["C#", "TypeScript", "Python", "Azure", "SQL Server", ".NET"],
-        "industry": "technology",
-        "is_faang": True,
-    },
-    "netflix.com": {
-        "name": "Netflix",
-        "stack": ["Java", "Python", "Go", "Cassandra", "Kafka", "gRPC"],
-        "industry": "entertainment",
-        "is_faang": True,
-    },
-    "stripe.com": {
-        "name": "Stripe",
-        "stack": ["Ruby", "Go", "TypeScript", "React", "PostgreSQL", "Kafka"],
-        "industry": "fintech",
-        "is_faang": False,
-    },
-    "openai.com": {
-        "name": "OpenAI",
-        "stack": ["Python", "PyTorch", "Kubernetes", "Go", "React", "PostgreSQL"],
-        "industry": "AI/ML",
-        "is_faang": False,
-    },
-    "anthropic.com": {
-        "name": "Anthropic",
-        "stack": ["Python", "Rust", "TypeScript", "React", "PostgreSQL"],
-        "industry": "AI/ML",
-        "is_faang": False,
-    },
-    "deepmind.com": {
-        "name": "DeepMind",
-        "stack": ["Python", "JAX", "TensorFlow", "C++", "Go"],
-        "industry": "AI/ML",
-        "is_faang": True,
-    },
-    "shopify.com": {
-        "name": "Shopify",
-        "stack": ["Ruby", "Go", "TypeScript", "React", "MySQL", "Redis"],
-        "industry": "e-commerce",
-        "is_faang": False,
-    },
-    "vercel.com": {
-        "name": "Vercel",
-        "stack": ["TypeScript", "Go", "Rust", "React", "Next.js", "PostgreSQL"],
-        "industry": "developer-tools",
-        "is_faang": False,
-    },
-}
-
-# Aman's tech stack for overlap computation
-OWNER_TECH_STACK = {
-    "Python", "FastAPI", "LangGraph", "PostgreSQL", "Redis", "Qdrant",
-    "Next.js", "TypeScript", "React", "Docker", "Kubernetes", "Celery",
-    "Ollama", "RAG", "pgvector", "Nginx", "Prometheus", "Grafana",
-}
-
-
-# ═══════════════════════════════════════════════════════════
-# RESOLVER
-# ═══════════════════════════════════════════════════════════
-
-async def resolve_company(client_ip: str) -> Optional[CompanyProfile]:
+class CompanyResolver:
     """
-    Multi-strategy company resolution from IP address.
-    
-    Strategy order (first match wins):
-      1. ip-api.com → org/ISP field → match against known companies
-      2. Reverse DNS → domain extraction → match against known companies
-      3. Return raw ISP/org info as unknown company
+    Looks up organizational info from an IP address.
+    Requires MaxMind GeoLite2 ASN or Enterprise DB.
     """
-    if not client_ip or client_ip in ("127.0.0.1", "::1", "unknown"):
-        return None
 
-    # ── Strategy 1: ip-api.com ──
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(
-                f"http://ip-api.com/json/{client_ip}",
-                params={"fields": "status,org,isp,as,query"},
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("status") == "success":
-                    org = data.get("org", "") or data.get("isp", "")
-                    return _match_org_to_company(org)
-    except Exception as e:
-        logger.debug(f"ip-api.com lookup failed: {e}")
+    def __init__(self, db_path: str | None = None):
+        self._db_path = db_path
+        self._reader = None
+        self._initialized = False
 
-    # ── Strategy 2: Reverse DNS ──
-    try:
-        hostname = socket.getfqdn(client_ip)
-        if hostname and hostname != client_ip:
-            domain = _extract_domain(hostname)
-            if domain:
-                return _match_domain_to_company(domain)
-    except Exception as e:
-        logger.debug(f"Reverse DNS failed: {e}")
+    def _init_reader(self) -> None:
+        """Lazy load the maxmind DB."""
+        if self._initialized:
+            return
 
-    return None
+        self._initialized = True
+        
+        if not self._db_path:
+            return
+            
+        path = Path(self._db_path)
+        if not path.exists():
+            logger.debug(f"MaxMind DB not found at {path}, company resolution disabled.")
+            return
 
+        try:
+            import maxminddb
+            self._reader = maxminddb.open_database(str(path))
+            logger.info("Company resolver initialized via MaxMind DB.")
+        except ImportError:
+            logger.debug("maxminddb package not installed.")
+        except Exception as e:
+            logger.warning(f"Failed to open MaxMind DB: {e}")
 
-async def build_company_context(
-    profile: CompanyProfile,
-) -> CompanyContext:
-    """
-    Build full company context for prompt injection.
-    Pre-computes tech overlap and relevant projects.
-    """
-    # Compute tech stack overlap
-    company_stack_set = set(profile.tech_stack)
-    overlap = list(company_stack_set & OWNER_TECH_STACK)
+    def resolve(self, ip_address: str) -> dict[str, str | None]:
+        """
+        Attempt to resolve IP to company info.
+        Never blocks or crashes on failure.
+        """
+        self._init_reader()
 
-    # Build context injection string
-    context_parts = [
-        f"Visitor is from {profile.name} ({profile.domain}).",
-    ]
-    if overlap:
-        context_parts.append(
-            f"Shared tech stack: {', '.join(overlap)}."
-        )
-    if profile.is_faang:
-        context_parts.append(
-            "This is a major tech company — emphasize systems design depth and scale."
-        )
-    if profile.is_startup:
-        context_parts.append(
-            "This is a startup — emphasize full-stack ownership and shipping velocity."
-        )
+        result = {
+            "name": None,
+            "domain": None,
+            "org": None,
+        }
 
-    return CompanyContext(
-        profile=profile,
-        tech_overlap=overlap,
-        context_string=" ".join(context_parts),
-    )
+        # 1. Skip local IPs
+        if ip_address.startswith(("127.", "192.168.", "10.", "172.")):
+            return result
+            
+        if ip_address == "::1":
+            return result
 
+        # 2. Query MaxMind if available
+        if self._reader:
+            try:
+                record = self._reader.get(ip_address)
+                if record:
+                    # Handle different MaxMind DB formats (City vs ASN vs Enterprise)
+                    org = record.get("traits", {}).get("organization")
+                    domain = record.get("traits", {}).get("domain")
+                    
+                    if not org:
+                        org = record.get("autonomous_system_organization")
 
-# ═══════════════════════════════════════════════════════════
-# INTERNAL HELPERS
-# ═══════════════════════════════════════════════════════════
+                    # Filter out obvious ISPs
+                    if org and not self._is_isp(org):
+                        result["org"] = org
+                        result["domain"] = domain
+            except Exception as e:
+                logger.debug(f"Company resolution failed for {ip_address}: {e}")
 
-def _match_org_to_company(org: str) -> Optional[CompanyProfile]:
-    """Match ISP/org string to known company."""
-    org_lower = org.lower()
-    for domain, info in COMPANY_TECH_STACKS.items():
-        company_name = info["name"].lower()
-        if company_name in org_lower or domain.split(".")[0] in org_lower:
-            return CompanyProfile(
-                name=info["name"],
-                domain=domain,
-                tech_stack=info["stack"],
-                industry=info.get("industry", "technology"),
-                is_faang=info.get("is_faang", False),
-                is_startup=False,
-            )
-    
-    # Unknown company — still return basic profile
-    if org and len(org) > 2:
-        return CompanyProfile(
-            name=org,
-            domain="unknown",
-            tech_stack=[],
-            industry="unknown",
-        )
-    return None
+        return result
+
+    def _is_isp(self, org_name: str) -> bool:
+        """Heuristic to filter out generic ISPs from business names."""
+        lower = org_name.lower()
+        isps = [
+            "comcast", "verizon", "att ", "t-mobile", "spectrum", 
+            "charter", "vodafone", "telecom", "broadband", "isp",
+            "amazon.com", "googleusercontent", "aws "
+        ]
+        return any(isp in lower for isp in isps)
 
 
-def _match_domain_to_company(domain: str) -> Optional[CompanyProfile]:
-    """Match extracted domain to known company database."""
-    domain_lower = domain.lower()
-    if domain_lower in COMPANY_TECH_STACKS:
-        info = COMPANY_TECH_STACKS[domain_lower]
-        return CompanyProfile(
-            name=info["name"],
-            domain=domain_lower,
-            tech_stack=info["stack"],
-            industry=info.get("industry", "technology"),
-            is_faang=info.get("is_faang", False),
-        )
-    return None
-
-
-def _extract_domain(hostname: str) -> Optional[str]:
-    """Extract root domain from FQDN (e.g., 'mail.google.com' → 'google.com')."""
-    parts = hostname.split(".")
-    if len(parts) >= 2:
-        return f"{parts[-2]}.{parts[-1]}"
-    return None
+# Shared instance
+company_resolver = CompanyResolver()

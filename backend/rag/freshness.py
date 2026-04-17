@@ -1,218 +1,143 @@
 """
 ═══════════════════════════════════════════════════════════
-Self-Healing Ingestion — Freshness Tracker (§5)
+ANTIGRAVITY OS v4 — Chunk Freshness Scoring
 ═══════════════════════════════════════════════════════════
 
-Every RAG chunk has a freshness score. The system proactively
-identifies and reschedules stale chunks.
-
-Freshness = f(age, source_type, change_velocity)
-
-Source-type TTLs:
-  - GitHub file content:     12 hours
-  - GitHub README:           24 hours
-  - GitHub stats:            6 hours
-  - LinkedIn about:          7 days
-  - Resume PDF:              on_change_only
-  - Personal bio:            on_change_only
-  - Project descriptions:    72 hours
-
-Semantic drift detection via cosine similarity < 0.92.
+Stale knowledge is a lie. Recent chunks score higher.
+Exponential decay based on age — commits from yesterday
+outrank docs from 6 months ago.
 """
 
 from __future__ import annotations
 
-import hashlib
+import math
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional, Tuple
-
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+from typing import Any
 
 logger = logging.getLogger("portfolio.rag.freshness")
 
 
-# ═══════════════════════════════════════════════════════════
-# TTL CONFIGURATION
-# ═══════════════════════════════════════════════════════════
+class FreshnessScorer:
+    """
+    Applies time-decay scoring to RAG chunks.
+    
+    Formula: freshness = base_score * decay_factor
+    Where:  decay_factor = exp(-lambda * age_days)
+    
+    Default half-life: 30 days (configurable)
+    - 0 days old  → 1.0x multiplier
+    - 30 days old → 0.5x multiplier
+    - 60 days old → 0.25x multiplier
+    - 90 days old → 0.125x multiplier
+    """
 
-SOURCE_TYPE_TTL: Dict[str, timedelta] = {
-    "github_file": timedelta(hours=12),
-    "github_readme": timedelta(hours=24),
-    "github_stats": timedelta(hours=6),
-    "github_commit": timedelta(hours=12),
-    "linkedin": timedelta(days=7),
-    "resume": timedelta(days=365),  # on_change_only, effectively
-    "bio": timedelta(days=365),
-    "project_description": timedelta(hours=72),
-    "owner_content": timedelta(days=30),
-}
+    def __init__(self, half_life_days: float = 30.0):
+        self._half_life = half_life_days
+        # lambda = ln(2) / half_life
+        self._decay_lambda = math.log(2) / max(half_life_days, 1.0)
 
-# Active repos get shorter TTLs
-VELOCITY_MULTIPLIER_ACTIVE = 0.5   # Commits in last 7 days
-VELOCITY_MULTIPLIER_ARCHIVED = 5.0  # No commits in 90+ days
-
-# Semantic drift threshold
-DRIFT_THRESHOLD = 0.92  # cosine similarity below this = meaningful change
-
-
-# ═══════════════════════════════════════════════════════════
-# MODELS
-# ═══════════════════════════════════════════════════════════
-
-class ChunkFreshness(BaseModel):
-    chunk_id: str
-    source_type: str
-    last_checked: datetime
-    last_content_hash: str = ""
-    freshness_score: float = 1.0  # 0.0 = stale, 1.0 = fresh
-    needs_reingest: bool = False
-    semantic_drift_detected: bool = False
-
-
-class SemanticDrift(BaseModel):
-    chunk_id: str
-    old_hash: str
-    new_hash: str
-    cosine_similarity: float
-    drift_type: str  # "semantic" (meaning changed) or "stylistic" (form changed)
-    needs_reingest: bool
-
-
-# ═══════════════════════════════════════════════════════════
-# FRESHNESS TRACKER
-# ═══════════════════════════════════════════════════════════
-
-class ChunkFreshnessTracker:
-    """Track and maintain freshness of RAG chunks."""
-
-    def __init__(self, embed_fn=None):
+    def score(
+        self,
+        chunk: dict[str, Any],
+        base_score: float = 1.0,
+        now: datetime | None = None,
+    ) -> float:
         """
+        Calculate freshness-adjusted score for a chunk.
+        
         Args:
-            embed_fn: async callable(text) -> List[float]
+            chunk: Must have 'updated_at' or 'created_at' in metadata
+            base_score: The retrieval relevance score (from Qdrant/BM25)
+            now: Current time (defaults to UTC now)
+            
+        Returns:
+            Adjusted score = base_score * freshness_decay
         """
-        self.embed_fn = embed_fn
+        if now is None:
+            now = datetime.now(timezone.utc)
 
-    def score_chunk_freshness(
+        # Extract timestamp from chunk metadata
+        timestamp = self._extract_timestamp(chunk)
+        if timestamp is None:
+            # No timestamp → apply a mild penalty (0.7x)
+            return base_score * 0.7
+
+        # Calculate age in days
+        age_days = max((now - timestamp).total_seconds() / 86400.0, 0.0)
+
+        # Exponential decay
+        decay = math.exp(-self._decay_lambda * age_days)
+
+        return base_score * decay
+
+    def rerank_by_freshness(
         self,
-        source_type: str,
-        last_updated: datetime,
-        is_active_repo: bool = False,
-    ) -> float:
+        chunks: list[dict[str, Any]],
+        scores: list[float] | None = None,
+        freshness_weight: float = 0.3,
+    ) -> list[dict[str, Any]]:
         """
-        Compute freshness score for a chunk.
-        Returns 0.0 (totally stale) to 1.0 (perfectly fresh).
-        """
-        ttl = SOURCE_TYPE_TTL.get(source_type, timedelta(hours=24))
-
-        # Apply velocity multiplier
-        if is_active_repo:
-            ttl = timedelta(seconds=ttl.total_seconds() * VELOCITY_MULTIPLIER_ACTIVE)
+        Re-rank chunks by combining relevance and freshness.
         
-        age = datetime.now(timezone.utc) - last_updated
-        if age <= timedelta(0):
-            return 1.0
-
-        # Linear decay over TTL
-        ratio = age / ttl
-        score = max(0.0, 1.0 - ratio)
-        return round(score, 3)
-
-    def is_stale(
-        self,
-        source_type: str,
-        last_updated: datetime,
-        is_active_repo: bool = False,
-    ) -> bool:
-        """Check if a chunk is past its freshness TTL."""
-        return self.score_chunk_freshness(source_type, last_updated, is_active_repo) <= 0.0
-
-    async def detect_semantic_drift(
-        self,
-        old_content: str,
-        new_content: str,
-        chunk_id: str = "",
-    ) -> SemanticDrift:
-        """
-        Detect if content change is semantic (meaning changed) or just stylistic.
+        Combined score = (1 - freshness_weight) * relevance + freshness_weight * freshness
         
-        Method:
-          1. Hash comparison (fast path — identical = skip)
-          2. Embedding cosine similarity
-          3. If cosine < 0.92 → SEMANTIC DRIFT (re-ingest with priority)
-          4. If cosine >= 0.92 → stylistic only (update timestamp)
+        Args:
+            chunks: List of RAG chunks
+            scores: Parallel list of relevance scores (default: all 1.0)
+            freshness_weight: How much to weight freshness (0.0-1.0)
+            
+        Returns:
+            Re-ranked list of chunks
         """
-        old_hash = hashlib.sha256(old_content.encode()).hexdigest()[:16]
-        new_hash = hashlib.sha256(new_content.encode()).hexdigest()[:16]
+        if not chunks:
+            return []
 
-        # Fast path: identical content
-        if old_hash == new_hash:
-            return SemanticDrift(
-                chunk_id=chunk_id,
-                old_hash=old_hash,
-                new_hash=new_hash,
-                cosine_similarity=1.0,
-                drift_type="none",
-                needs_reingest=False,
-            )
+        if scores is None:
+            scores = [1.0] * len(chunks)
 
-        # Compute semantic similarity
-        if self.embed_fn:
-            try:
-                old_emb = await self.embed_fn(old_content[:2000])
-                new_emb = await self.embed_fn(new_content[:2000])
-                similarity = self._cosine_similarity(old_emb, new_emb)
-            except Exception as e:
-                logger.warning(f"Embedding failed for drift detection: {e}")
-                similarity = 0.0
-        else:
-            # Without embeddings, treat all content changes as semantic
-            similarity = 0.0
+        now = datetime.now(timezone.utc)
+        scored: list[tuple[float, dict[str, Any]]] = []
 
-        drift_type = "semantic" if similarity < DRIFT_THRESHOLD else "stylistic"
-        needs_reingest = similarity < DRIFT_THRESHOLD
+        for chunk, relevance in zip(chunks, scores):
+            freshness = self.score(chunk, base_score=1.0, now=now)
+            combined = (1 - freshness_weight) * relevance + freshness_weight * freshness
+            scored.append((combined, chunk))
 
-        if needs_reingest:
-            logger.info(
-                f"Semantic drift detected for {chunk_id}: "
-                f"similarity={similarity:.3f} < threshold={DRIFT_THRESHOLD}"
-            )
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [chunk for _, chunk in scored]
 
-        return SemanticDrift(
-            chunk_id=chunk_id,
-            old_hash=old_hash,
-            new_hash=new_hash,
-            cosine_similarity=round(similarity, 4),
-            drift_type=drift_type,
-            needs_reingest=needs_reingest,
-        )
+    def _extract_timestamp(self, chunk: dict[str, Any]) -> datetime | None:
+        """Extract timestamp from chunk metadata."""
+        metadata = chunk.get("metadata", chunk)
 
-    def compute_freshness_weighted_score(
-        self,
-        relevance_score: float,
-        freshness_score: float,
-        impact_score: float = 0.5,
-    ) -> float:
-        """
-        Final retrieval score combining relevance, freshness, and impact.
-        
-        score = (relevance × 0.70) + (freshness × 0.20) + (impact × 0.10)
-        """
-        return (
-            relevance_score * 0.70
-            + freshness_score * 0.20
-            + impact_score * 0.10
-        )
+        for field in ("updated_at", "created_at", "last_modified", "timestamp"):
+            val = metadata.get(field)
+            if val is None:
+                continue
 
-    @staticmethod
-    def _cosine_similarity(a: List[float], b: List[float]) -> float:
-        """Cosine similarity between two vectors."""
-        import numpy as np
-        a_arr = np.array(a, dtype=np.float32)
-        b_arr = np.array(b, dtype=np.float32)
-        dot = np.dot(a_arr, b_arr)
-        norm_a = np.linalg.norm(a_arr)
-        norm_b = np.linalg.norm(b_arr)
-        if norm_a == 0 or norm_b == 0:
-            return 0.0
-        return float(dot / (norm_a * norm_b))
+            if isinstance(val, datetime):
+                if val.tzinfo is None:
+                    return val.replace(tzinfo=timezone.utc)
+                return val
+
+            if isinstance(val, str):
+                try:
+                    dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    return dt
+                except (ValueError, TypeError):
+                    continue
+
+            if isinstance(val, (int, float)):
+                try:
+                    return datetime.fromtimestamp(val, tz=timezone.utc)
+                except (ValueError, OSError):
+                    continue
+
+        return None
+
+
+# Module-level singleton
+freshness_scorer = FreshnessScorer(half_life_days=30.0)

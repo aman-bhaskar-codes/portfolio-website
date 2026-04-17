@@ -1,66 +1,67 @@
 """
-HyDE — Hypothetical Document Embeddings.
-Generates a hypothetical answer to the query, embeds it,
-and uses that embedding for denser retrieval.
+═══════════════════════════════════════════════════════════
+ANTIGRAVITY OS v4 — HyDE Query Expansion (§10)
+═══════════════════════════════════════════════════════════
+
+Hypothetical Document Embedding:
+Generate a hypothetical answer → embed it → use as search query.
+This dramatically improves recall for vague or short queries.
 """
 
-import json
+from __future__ import annotations
+
 import logging
-
-import httpx
-
-from backend.config.settings import settings
-from backend.config.constants import RAG_CONFIG
-from backend.prompts.templates import HyDETemplate
-from backend.rag.embedder import embedder
+from typing import Any
 
 logger = logging.getLogger("portfolio.rag.hyde")
 
-_hyde_template = HyDETemplate()
 
-
-async def generate_hypothetical_document(query: str) -> str:
+class HyDEExpander:
     """
-    Generate a hypothetical answer to the query using a fast model.
-    This answer is NOT returned to the user — it's embedded for retrieval.
-    """
-    prompt = _hyde_template.template.format(query=query)
+    Generates hypothetical document embeddings for better retrieval.
     
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(
-                f"{settings.OLLAMA_URL}/api/generate",
-                json={
-                    "model": RAG_CONFIG["hyde_model"],
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": 0.7, "num_predict": 150},
-                },
+    Instead of embedding the raw query "What AI projects?", we first
+    generate a hypothetical answer, then embed THAT for searching.
+    This bridges the vocabulary gap between question and answer.
+    """
+
+    HYDE_PROMPT = (
+        "Generate a short (2-3 sentence) answer to this question about "
+        "a software engineer's portfolio. Don't use any real facts — "
+        "just generate what an ideal answer MIGHT look like:\n\n"
+        "Question: {query}\n\n"
+        "Hypothetical answer:"
+    )
+
+    def __init__(self, ollama_client: Any, model: str = "llama3.2:3b"):
+        self._ollama = ollama_client
+        self._model = model
+
+    async def expand(self, query: str) -> str:
+        """
+        Generate a hypothetical answer to use as an expanded query.
+        
+        Falls back to the original query if generation fails.
+        """
+        try:
+            response = await self._ollama.generate(
+                model=self._model,
+                prompt=self.HYDE_PROMPT.format(query=query),
+                options={"num_predict": 100, "temperature": 0.7},
             )
-            response.raise_for_status()
-            data = response.json()
-            hypothetical = data.get("response", "").strip()
-            
-            if hypothetical:
-                logger.debug(f"HyDE generated: '{hypothetical[:80]}...'")
-                return hypothetical
-            
-    except Exception as e:
-        logger.warning(f"HyDE generation failed, falling back to raw query: {e}")
-    
-    return query  # Fallback: use raw query
+            expanded = response.get("response", "").strip()
+            if expanded and len(expanded) > 10:
+                logger.debug(f"HyDE expanded: '{query}' → '{expanded[:80]}...'")
+                return expanded
+        except Exception as e:
+            logger.debug(f"HyDE expansion failed (using original query): {e}")
+
+        return query
 
 
-async def hyde_embed(query: str) -> list[float]:
-    """
-    Full HyDE pipeline: generate hypothetical doc → embed it.
-    
-    Returns:
-        768-dim embedding of the hypothetical document
-    """
-    hypothetical_doc = await generate_hypothetical_document(query)
-    
-    # Embed the hypothetical document (not the raw query)
-    embedding = await embedder.embed_text(hypothetical_doc)
-    
-    return embedding
+# Factory function
+def create_hyde_expander(
+    ollama_client: Any,
+    model: str = "llama3.2:3b",
+) -> HyDEExpander:
+    return HyDEExpander(ollama_client, model)
