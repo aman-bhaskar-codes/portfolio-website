@@ -32,7 +32,25 @@ RUN touch /app/backend/__init__.py \
     /app/backend/reliability/__init__.py \
     /app/backend/security/__init__.py \
     /app/backend/llm/__init__.py \
-    /app/backend/streaming/__init__.py
+    /app/backend/streaming/__init__.py \
+    /app/backend/analytics/__init__.py \
+    /app/backend/storage/__init__.py \
+    /app/backend/notifications/__init__.py \
+    /app/backend/evaluation/__init__.py \
+    /app/backend/optimization/__init__.py \
+    /app/backend/session/__init__.py \
+    /app/backend/twin/__init__.py \
+    /app/backend/voice/__init__.py \
+    /app/backend/reasoning/__init__.py \
+    /app/backend/redis_cache/__init__.py \
+    /app/backend/reflection/__init__.py \
+    /app/backend/retrieval/__init__.py \
+    /app/backend/ranking/__init__.py \
+    /app/backend/rl/__init__.py \
+    /app/backend/rl_memory/__init__.py
+
+# Create data directories for V3
+RUN mkdir -p /app/data/analytics/parquet /app/data/security /app/data/engagement
 
 EXPOSE 8000
 

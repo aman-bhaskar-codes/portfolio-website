@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════
-# Agentic Portfolio Backend — Python Dependencies
+# ANTIGRAVITY OS v3 — Python Dependencies (Omega Build)
 # ═══════════════════════════════════════════════════════════
 
 # ── Core Framework ──
@@ -57,3 +57,32 @@ PyGithub==2.5.0
 # ── Utilities ──
 python-dotenv==1.0.1
 python-multipart==0.0.20
+
+# ═══════════════════════════════════════════════════════════
+# V3 OMEGA BUILD — New Dependencies
+# ═══════════════════════════════════════════════════════════
+
+# ── Advanced RAG: ColBERT Late-Interaction Retrieval ──
+ragatouille==0.0.8
+
+# ── Structured Output from Local LLMs ──
+outlines==0.1.11
+
+# ── Automated Prompt Self-Optimization ──
+dspy-ai==2.5.43
+
+# ── RAG Quality Evaluation ──
+ragas==0.2.14
+
+# ── Columnar Analytics Engine ──
+duckdb==1.2.2
+
+# ── Self-Hosted S3 Storage (MinIO via boto3) ──
+boto3==1.36.20
+
+# ── NLP Preprocessing ──
+nltk==3.9.1
+spacy==3.8.4
+
+# ── PDF Generation (Recruiter Briefs) ──
+weasyprint==63.1

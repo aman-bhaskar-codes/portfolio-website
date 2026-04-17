@@ -132,6 +132,80 @@ class Settings(BaseSettings):
     FEATURE_WEB_RESEARCH: bool = True
     FEATURE_OPPORTUNITY_AGENT: bool = False  # Private, enable manually
 
+    # ═══════════════════════════════════════════════════════════
+    # ANTIGRAVITY OS v3 — OMEGA BUILD
+    # ═══════════════════════════════════════════════════════════
+
+    # ─── V3: Vision Model (Local via Ollama) ───
+    OLLAMA_VISION_MODEL: str = "llava-phi3"   # ~4.2B params, vision-capable
+    OLLAMA_RERANK_MODEL: str = "mxbai-rerank-large"
+
+    # ─── V3: ColBERT Retrieval ───
+    COLBERT_MODEL: str = "colbert-ir/colbertv2.0"
+    COLBERT_TOP_K_DENSE: int = 50     # Stage 1: dense candidates
+    COLBERT_TOP_K_RERANK: int = 8     # Stage 2: ColBERT rerank
+    CROSS_ENCODER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    CROSS_ENCODER_TOP_K: int = 4      # Stage 3: final selection
+
+    # ─── V3: Structured Output (Outlines) ───
+    OUTLINES_ENABLED: bool = True
+
+    # ─── V3: DSPy Prompt Optimization ───
+    DSPY_ENABLED: bool = True
+    DSPY_OPTIMIZATION_SCHEDULE: str = "sunday_01:00"
+    DSPY_IMPROVEMENT_THRESHOLD: float = 0.05  # 5% improvement to auto-deploy
+    DSPY_NUM_CANDIDATES: int = 15
+    DSPY_NUM_TRIALS: int = 25
+    DSPY_MAX_BOOTSTRAPPED_DEMOS: int = 4
+    DSPY_MAX_LABELED_DEMOS: int = 8
+
+    # ─── V3: Ragas RAG Evaluation ───
+    RAGAS_ENABLED: bool = True
+    RAGAS_EVAL_SCHEDULE: str = "daily_04:00"
+    RAGAS_FAITHFULNESS_THRESHOLD: float = 0.80
+    RAGAS_CONTEXT_PRECISION_THRESHOLD: float = 0.75
+    RAGAS_ANSWER_RELEVANCY_THRESHOLD: float = 0.80
+    RAGAS_EVAL_DATASET_SIZE: int = 150
+
+    # ─── V3: DuckDB Analytics ───
+    DUCKDB_PATH: str = "data/analytics/antigravity.duckdb"
+    DUCKDB_PARQUET_DIR: str = "data/analytics/parquet"
+    DUCKDB_ETL_SCHEDULE: str = "daily_02:00"
+
+    # ─── V3: MinIO (Self-Hosted S3) ───
+    MINIO_ENDPOINT: str = "http://localhost:9000"
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
+    MINIO_BUCKET_BRIEFS: str = "portfolio-briefs"
+    MINIO_BUCKET_SCREENSHOTS: str = "portfolio-screenshots"
+    MINIO_BUCKET_ANALYTICS: str = "portfolio-analytics"
+    MINIO_BUCKET_BACKUPS: str = "portfolio-backups"
+    MINIO_BRIEF_EXPIRY_HOURS: int = 24
+
+    # ─── V3: ntfy Push Notifications ───
+    NTFY_BASE_URL: str = "http://localhost:8080"
+    NTFY_TOPIC: str = "portfolio-alerts"
+    NTFY_AUTH_TOKEN: str = ""
+    NTFY_ENABLED: bool = True
+
+    # ─── V3: Umami Analytics ───
+    UMAMI_APP_SECRET: str = ""
+    UMAMI_TRACKING_ID: str = ""
+    UMAMI_HOST: str = "http://localhost:3003"
+
+    # ─── V3: V3 Feature Flags ───
+    FEATURE_PWA: bool = True
+    FEATURE_WEB_WORKER_EMBEDDINGS: bool = True
+    FEATURE_FINGERPRINT: bool = True
+    FEATURE_COLBERT_RETRIEVAL: bool = True
+    FEATURE_VISION_PIPELINE: bool = True
+    FEATURE_DSPY_OPTIMIZATION: bool = True
+    FEATURE_RAGAS_EVALUATION: bool = True
+    FEATURE_DUCKDB_ANALYTICS: bool = True
+    FEATURE_MINIO_STORAGE: bool = True
+    FEATURE_NTFY_NOTIFICATIONS: bool = True
+    FEATURE_UMAMI_ANALYTICS: bool = True
+
     # ─── CORS ───
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",

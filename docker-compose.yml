@@ -46,6 +46,7 @@ services:
     volumes:
       - ./backend:/app/backend
       - ./data:/app/data
+      - analytics_data:/app/data/analytics
     environment:
       # ── V1: Core Infrastructure ──
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/portfolio_db
@@ -106,6 +107,48 @@ services:
       - FEATURE_3D_CONSTELLATION=true
       - FEATURE_WEB_RESEARCH=true
       - FEATURE_OPPORTUNITY_AGENT=false
+
+      # ── V3: Vision Model ──
+      - OLLAMA_VISION_MODEL=llava-phi3
+
+      # ── V3: ColBERT Retrieval ──
+      - COLBERT_MODEL=colbert-ir/colbertv2.0
+      - CROSS_ENCODER_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
+
+      # ── V3: DSPy Optimization ──
+      - DSPY_ENABLED=true
+      - DSPY_IMPROVEMENT_THRESHOLD=0.05
+
+      # ── V3: Ragas Evaluation ──
+      - RAGAS_ENABLED=true
+      - RAGAS_FAITHFULNESS_THRESHOLD=0.80
+
+      # ── V3: DuckDB Analytics ──
+      - DUCKDB_PATH=data/analytics/antigravity.duckdb
+
+      # ── V3: MinIO (S3-Compatible Storage) ──
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+
+      # ── V3: ntfy Push Notifications ──
+      - NTFY_BASE_URL=http://ntfy:80
+      - NTFY_TOPIC=portfolio-alerts
+      - NTFY_ENABLED=true
+
+      # ── V3: Umami Analytics ──
+      - UMAMI_HOST=http://umami:3000
+      - UMAMI_TRACKING_ID=${UMAMI_TRACKING_ID:-}
+
+      # ── V3: Feature Flags ──
+      - FEATURE_COLBERT_RETRIEVAL=true
+      - FEATURE_VISION_PIPELINE=true
+      - FEATURE_DSPY_OPTIMIZATION=true
+      - FEATURE_RAGAS_EVALUATION=true
+      - FEATURE_DUCKDB_ANALYTICS=true
+      - FEATURE_MINIO_STORAGE=true
+      - FEATURE_NTFY_NOTIFICATIONS=true
+      - FEATURE_PWA=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -298,6 +341,61 @@ services:
     networks:
       - internal
 
+  # ───────────────────────────────────────────────────
+  # 📦 MinIO (Self-Hosted S3 Storage) — V3
+  # ───────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # ───────────────────────────────────────────────────
+  # 🔔 ntfy (Push Notifications) — V3
+  # ───────────────────────────────────────────────────
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    ports:
+      - "8080:80"
+    command: serve
+    volumes:
+      - ntfy_data:/var/lib/ntfy
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # ───────────────────────────────────────────────────
+  # 📊 Umami (Privacy-First Analytics) — V3
+  # ───────────────────────────────────────────────────
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    ports:
+      - "3003:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portfolio_db
+      - DATABASE_TYPE=postgresql
+      - APP_SECRET=${UMAMI_APP_SECRET:-umami-secret-change-me}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
 # ───────────────────────────────────────────────────
 # 💾 Persistent Volumes
 # ───────────────────────────────────────────────────
@@ -307,6 +405,9 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  minio_data:
+  ntfy_data:
+  analytics_data:
 
 # ───────────────────────────────────────────────────
 # 🔒 Internal Network
