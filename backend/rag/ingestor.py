@@ -1,290 +1,138 @@
+# backend/rag/ingestor.py
 """
 ═══════════════════════════════════════════════════════════
-ANTIGRAVITY OS v4 — RAG Document Ingestor
+ANTIGRAVITY OS v4 — Document Ingestor
 ═══════════════════════════════════════════════════════════
 
-Parses documents (MD, PDF, code) → chunks → embeds → upserts to Qdrant.
-Uses simple text splitting (no external Docling dependency in dev).
+Ingests documents into Qdrant vector store.
 """
-
-from __future__ import annotations
-
-import hashlib
 import logging
-import os
-import re
-from datetime import datetime, timezone
+import hashlib
 from pathlib import Path
-from typing import Any
-from uuid import uuid4
+from typing import List, Optional
+from dataclasses import dataclass, field
 
-logger = logging.getLogger("portfolio.rag.ingestor")
+from qdrant_client.models import PointStruct
+from backend.db.connections import get_qdrant
+from backend.llm.ollama_client import get_ollama
+from backend.config.settings import settings
+
+logger = logging.getLogger(__name__)
 
 
-class TextChunker:
-    """
-    Splits text into overlapping chunks.
-    
-    Strategy: paragraph-aware splitting with overlap.
-    Respects markdown headers as natural boundaries.
-    """
+@dataclass
+class Document:
+    content: str
+    source: str
+    metadata: dict = field(default_factory=dict)
 
-    def __init__(
-        self,
-        chunk_size: int = 512,
-        chunk_overlap: int = 64,
-    ):
-        self._chunk_size = chunk_size
-        self._overlap = chunk_overlap
 
-    def chunk(self, text: str, metadata: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        """Split text into chunks with metadata."""
-        if not text or not text.strip():
-            return []
+@dataclass
+class Chunk:
+    content: str
+    source: str
+    chunk_id: str
+    metadata: dict = field(default_factory=dict)
 
-        base_metadata = metadata or {}
-        chunks: list[dict[str, Any]] = []
 
-        # Split by markdown headers or double newlines
-        sections = re.split(r'\n(?=#{1,3} )', text)
-        
-        for section in sections:
-            section = section.strip()
-            if not section:
+class Ingestor:
+    """Ingests documents into Qdrant vector store."""
+
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 50):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+
+    def chunk_text(self, text: str, source: str) -> List[Chunk]:
+        """Split text into overlapping chunks."""
+        words = text.split()
+        chunks = []
+        i = 0
+        while i < len(words):
+            chunk_words = words[i:i + self.chunk_size]
+            content = " ".join(chunk_words)
+            if len(content.strip()) < 20:
+                i += self.chunk_size - self.chunk_overlap
                 continue
-
-            # Extract section header if present
-            header = ""
-            header_match = re.match(r'^(#{1,3})\s+(.+)', section)
-            if header_match:
-                header = header_match.group(2).strip()
-
-            # Split section into words for size-based chunking
-            words = section.split()
-            
-            if len(words) <= self._chunk_size:
-                # Section fits in one chunk
-                chunks.append({
-                    "content": section,
-                    "metadata": {
-                        **base_metadata,
-                        "section_header": header,
-                        "chunk_index": len(chunks),
-                    },
-                })
-            else:
-                # Split into overlapping chunks
-                for i in range(0, len(words), self._chunk_size - self._overlap):
-                    chunk_words = words[i:i + self._chunk_size]
-                    if len(chunk_words) < 20:  # Skip tiny trailing chunks
-                        continue
-                    chunks.append({
-                        "content": " ".join(chunk_words),
-                        "metadata": {
-                            **base_metadata,
-                            "section_header": header,
-                            "chunk_index": len(chunks),
-                        },
-                    })
-
+            chunk_id = hashlib.md5(f"{source}:{i}:{content[:50]}".encode()).hexdigest()
+            chunks.append(Chunk(
+                content=content,
+                source=source,
+                chunk_id=chunk_id,
+                metadata={"char_offset": i, "word_count": len(chunk_words)},
+            ))
+            i += self.chunk_size - self.chunk_overlap
         return chunks
 
+    async def ingest_document(self, doc: Document) -> int:
+        """Ingest one document. Returns number of chunks ingested."""
+        chunks = self.chunk_text(doc.content, doc.source)
+        if not chunks:
+            return 0
 
-class DocumentIngestor:
-    """
-    Ingests documents into the RAG pipeline.
-    
-    Flow: parse file → chunk → embed → upsert to Qdrant
-    """
+        qdrant = get_qdrant()
+        ollama = get_ollama()
+        points = []
 
-    def __init__(
-        self,
-        ollama_client: Any,
-        qdrant_client: Any | None = None,
-        embed_model: str = "nomic-embed-text",
-        collection_name: str = "portfolio_knowledge",
-        chunk_size: int = 512,
-    ):
-        self._ollama = ollama_client
-        self._qdrant = qdrant_client
-        self._embed_model = embed_model
-        self._collection = collection_name
-        self._chunker = TextChunker(chunk_size=chunk_size)
+        # Batch embed in groups of 10
+        batch_size = 10
+        for batch_start in range(0, len(chunks), batch_size):
+            batch = chunks[batch_start:batch_start + batch_size]
+            for chunk in batch:
+                try:
+                    embedding = await ollama.embed(chunk.content)
+                    points.append(PointStruct(
+                        id=abs(hash(chunk.chunk_id)) % (2**31),
+                        vector=embedding,
+                        payload={
+                            "content": chunk.content,
+                            "source": chunk.source,
+                            "chunk_id": chunk.chunk_id,
+                            "metadata": {**doc.metadata, **chunk.metadata},
+                            "freshness": 1.0,
+                        }
+                    ))
+                except Exception as e:
+                    logger.error(f"Failed to embed chunk from {doc.source}: {e}")
+                    continue
 
-    def set_qdrant_client(self, client: Any) -> None:
-        """Set Qdrant client (for deferred initialization)."""
-        self._qdrant = client
+        if points:
+            await qdrant.upsert(
+                collection_name=settings.QDRANT_COLLECTION_KNOWLEDGE,
+                points=points,
+            )
 
-    async def ingest_file(self, file_path: str | Path) -> int:
-        """
-        Ingest a single file into the RAG system.
-        
-        Returns number of chunks ingested.
-        """
+        logger.info(f"Ingested {len(points)} chunks from {doc.source}")
+        return len(points)
+
+    async def ingest_file(self, file_path: str) -> int:
+        """Ingest a file (txt, md, pdf)."""
         path = Path(file_path)
         if not path.exists():
-            logger.warning(f"File not found: {path}")
+            logger.error(f"File not found: {file_path}")
             return 0
 
-        # Read file content
-        content = self._read_file(path)
-        if not content:
-            return 0
+        if path.suffix == ".pdf":
+            content = self._read_pdf(path)
+        else:
+            content = path.read_text(encoding="utf-8", errors="ignore")
 
-        # Create metadata
-        metadata = {
-            "source": path.name,
-            "file_path": str(path),
-            "file_type": path.suffix.lstrip("."),
-            "updated_at": datetime.fromtimestamp(
-                path.stat().st_mtime, tz=timezone.utc
-            ).isoformat(),
-        }
+        doc = Document(
+            content=content,
+            source=path.name,
+            metadata={"file_path": str(path), "file_type": path.suffix},
+        )
+        return await self.ingest_document(doc)
 
-        # Chunk
-        chunks = self._chunker.chunk(content, metadata)
-        if not chunks:
-            logger.debug(f"No chunks generated from {path}")
-            return 0
-
-        # Embed and upsert
-        count = await self._embed_and_upsert(chunks)
-        logger.info(f"Ingested {count} chunks from {path.name}")
-        return count
-
-    async def ingest_directory(
-        self,
-        dir_path: str | Path,
-        extensions: tuple[str, ...] = (".md", ".txt", ".py", ".ts", ".tsx"),
-    ) -> int:
-        """
-        Ingest all matching files in a directory.
-        
-        Returns total number of chunks ingested.
-        """
-        path = Path(dir_path)
-        if not path.is_dir():
-            logger.warning(f"Directory not found: {path}")
-            return 0
-
-        total = 0
-        for ext in extensions:
-            for file_path in path.rglob(f"*{ext}"):
-                # Skip node_modules, .next, __pycache__, etc.
-                parts = file_path.parts
-                if any(p.startswith(".") or p in ("node_modules", "__pycache__", ".next") for p in parts):
-                    continue
-                total += await self.ingest_file(file_path)
-
-        logger.info(f"Ingested {total} total chunks from {path}")
-        return total
-
-    async def ingest_text(
-        self,
-        text: str,
-        source: str = "manual",
-        metadata: dict[str, Any] | None = None,
-    ) -> int:
-        """Ingest raw text directly."""
-        base_meta = metadata or {}
-        base_meta["source"] = source
-        base_meta["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-        chunks = self._chunker.chunk(text, base_meta)
-        if not chunks:
-            return 0
-
-        return await self._embed_and_upsert(chunks)
-
-    def _read_file(self, path: Path) -> str:
-        """Read file content, handling encoding issues."""
+    def _read_pdf(self, path: Path) -> str:
+        """Read PDF using docling."""
         try:
-            return path.read_text(encoding="utf-8", errors="replace")
-        except Exception as e:
-            logger.warning(f"Failed to read {path}: {e}")
+            from docling.document_converter import DocumentConverter
+            converter = DocumentConverter()
+            result = converter.convert(str(path))
+            return result.document.export_to_text()
+        except ImportError:
+            logger.warning("docling not installed, skipping PDF")
             return ""
-
-    async def _embed_and_upsert(
-        self, chunks: list[dict[str, Any]]
-    ) -> int:
-        """Embed chunks and upsert to Qdrant."""
-        if self._qdrant is None:
-            logger.debug("No Qdrant client, skipping upsert")
-            return len(chunks)  # Count as ingested for testing
-
-        count = 0
-        for chunk in chunks:
-            try:
-                # Generate embedding
-                vector = await self._ollama.embed(
-                    self._embed_model,
-                    chunk["content"],
-                )
-
-                if not vector:
-                    continue
-
-                # Generate deterministic ID from content hash
-                content_hash = hashlib.sha256(
-                    chunk["content"].encode()
-                ).hexdigest()[:16]
-                point_id = str(uuid4())
-
-                # Upsert to Qdrant
-                await self._qdrant.upsert(
-                    collection_name=self._collection,
-                    points=[{
-                        "id": point_id,
-                        "vector": vector,
-                        "payload": {
-                            "content": chunk["content"],
-                            "content_hash": content_hash,
-                            **chunk.get("metadata", {}),
-                        },
-                    }],
-                )
-                count += 1
-            except Exception as e:
-                logger.debug(f"Failed to embed/upsert chunk: {e}")
-
-        return count
-
-    async def ensure_collection(self, vector_size: int = 768) -> None:
-        """Create Qdrant collection if it doesn't exist."""
-        if self._qdrant is None:
-            return
-
-        try:
-            collections = await self._qdrant.get_collections()
-            existing = [c.name for c in collections.collections]
-
-            if self._collection not in existing:
-                from qdrant_client.models import (
-                    Distance,
-                    VectorParams,
-                )
-                await self._qdrant.create_collection(
-                    collection_name=self._collection,
-                    vectors_config=VectorParams(
-                        size=vector_size,
-                        distance=Distance.COSINE,
-                    ),
-                )
-                logger.info(f"Created Qdrant collection: {self._collection}")
         except Exception as e:
-            logger.warning(f"Collection check failed: {e}")
-
-
-# Module-level factory
-def create_ingestor(
-    ollama_client: Any,
-    qdrant_client: Any | None = None,
-    embed_model: str = "nomic-embed-text",
-    collection_name: str = "portfolio_knowledge",
-) -> DocumentIngestor:
-    return DocumentIngestor(
-        ollama_client=ollama_client,
-        qdrant_client=qdrant_client,
-        embed_model=embed_model,
-        collection_name=collection_name,
-    )
+            logger.error(f"PDF parsing failed for {path}: {e}")
+            return ""

@@ -206,12 +206,128 @@ class Settings(BaseSettings):
     FEATURE_NTFY_NOTIFICATIONS: bool = True
     FEATURE_UMAMI_ANALYTICS: bool = True
 
-    # ─── CORS ───
+    # CORS
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:3334",
         "http://localhost:80",
     ]
+
+    # ═══════════════════════════════════════════════════════════
+    # V4 SPEC-COMPATIBLE PROPERTY ACCESSORS
+    # ═══════════════════════════════════════════════════════════
+
+    @property
+    def ollama_base_url(self) -> str:
+        return self.OLLAMA_URL
+
+    @property
+    def ollama_primary_model(self) -> str:
+        return self.LLM_MODEL_MEDIUM
+
+    @property
+    def ollama_code_model(self) -> str:
+        return self.LLM_MODEL_LIGHT
+
+    @property
+    def ollama_deep_model(self) -> str:
+        return self.LLM_MODEL_HEAVY
+
+    @property
+    def ollama_vision_model(self) -> str:
+        return self.OLLAMA_VISION_MODEL
+
+    @property
+    def ollama_embed_model(self) -> str:
+        return self.EMBED_MODEL
+
+    @property
+    def ollama_rerank_model(self) -> str:
+        return self.OLLAMA_RERANK_MODEL
+
+    @property
+    def ollama_request_timeout(self) -> int:
+        return self.OLLAMA_TIMEOUT
+
+    @property
+    def redis_url(self) -> str:
+        return self.REDIS_URL
+
+    @property
+    def qdrant_host(self) -> str:
+        """Extract host from QDRANT_URL."""
+        url = self.QDRANT_URL.replace("http://", "").replace("https://", "")
+        return url.split(":")[0]
+
+    @property
+    def qdrant_port(self) -> int:
+        url = self.QDRANT_URL.replace("http://", "").replace("https://", "")
+        parts = url.split(":")
+        return int(parts[1]) if len(parts) > 1 else 6333
+
+    @property
+    def qdrant_collection_knowledge(self) -> str:
+        return self.QDRANT_COLLECTION_KNOWLEDGE
+
+    @property
+    def qdrant_collection_github(self) -> str:
+        return "github_semantic"
+
+    @property
+    def qdrant_collection_memory(self) -> str:
+        return self.QDRANT_COLLECTION_MEMORIES
+
+    @property
+    def postgres_dsn(self) -> str:
+        return self.DATABASE_URL
+
+    @property
+    def postgres_dsn_sync(self) -> str:
+        return self.SYNC_DATABASE_URL
+
+    @property
+    def owner_name(self) -> str:
+        return self.OWNER_NAME
+
+    @property
+    def owner_title(self) -> str:
+        return self.OWNER_TITLE
+
+    @property
+    def github_token(self) -> str:
+        return self.GITHUB_TOKEN
+
+    @property
+    def github_username(self) -> str:
+        return self.GITHUB_USERNAME
+
+    @property
+    def secret_key(self) -> str:
+        return self.JWT_SECRET
+
+    @property
+    def max_message_length(self) -> int:
+        return 2000
+
+    @property
+    def env(self) -> str:
+        return self.ENVIRONMENT
+
+    @property
+    def log_level(self) -> str:
+        return self.LOG_LEVEL
+
+    @property
+    def debug(self) -> bool:
+        return self.DEBUG
+
+    @property
+    def anthropic_api_key(self):
+        return None
+
+    @property
+    def feature_voice_mode(self) -> bool:
+        return self.FEATURE_VOICE_MODE
 
     class Config:
         env_file = ".env"

@@ -1,485 +1,251 @@
+# backend/agents/graph.py
 """
 ═══════════════════════════════════════════════════════════
-ANTIGRAVITY OS v4 — Master Agent Graph (§8)
+ANTIGRAVITY OS v4 — LangGraph Master Agent Pipeline
 ═══════════════════════════════════════════════════════════
 
-THE MASTER GRAPH — every agent request flows through here.
-
-Flow:
-  router → (rag | social | code | persona) → persona → ambient → memory → END
+7-node graph: Router → [RAG/Social/Code] → Persona → Ambient → Memory → END
+Falls back to sequential pipeline if LangGraph unavailable.
 """
-
-from __future__ import annotations
-
 import logging
-from typing import Any, Optional
+from typing import Optional, TypedDict, Any, List
 
-logger = logging.getLogger("portfolio.agents.graph")
+from backend.config.settings import settings
+from backend.llm.ollama_client import get_ollama
+from backend.llm.router import estimate_complexity, select_model
+
+logger = logging.getLogger(__name__)
 
 
-# ─── Agent State ────────────────────────────────────────────
-
-class AgentState(dict):
-    """
-    State dictionary that flows through the agent graph.
-    
-    All keys are optional with defaults for resilience.
-    """
-
-    # Input fields
+# ── Agent State ──
+class AgentState(TypedDict, total=False):
     session_id: str
     user_id: Optional[str]
     message: str
-
-    # Visitor intelligence
     visitor_persona: str
     company_context: Optional[str]
     visit_count: int
-
-    # Memory
-    working_memory: list[dict]
+    working_memory: list
     episodic_summary: str
-
-    # Routing
     intent: str
-    confidence: float
-
-    # Retrieved knowledge
-    rag_chunks: list[dict]
-    kg_context: str
-
-    # Agent outputs
-    raw_response: str
-    cited_sources: list[str]
-    conversion_action: str
-
-    # Final
+    complexity: str
+    model: str
+    rag_chunks: list
+    cited_sources: list
+    stream_tokens: list
     final_response: str
-    stream_tokens: list[str]
 
 
-def _get(state: dict, key: str, default: Any = "") -> Any:
-    """Safe state access with defaults."""
-    return state.get(key, default)
-
-
-# ─── Agent Nodes ────────────────────────────────────────────
+# ── Node Functions ──
 
 async def router_node(state: dict) -> dict:
-    """
-    Intent classification node.
-    Classifies the user's message into an intent category.
-    """
-    from backend.llm.ollama_client import ollama_client
+    """Classify intent from user message."""
+    message = state.get("message", "")
+    complexity = estimate_complexity(message)
 
-    message = _get(state, "message", "")
-    
-    # Use structured output for reliable classification
-    classification_prompt = (
-        "Classify this message into exactly ONE intent category. "
-        "Categories: personal_info, projects, technical_skill, "
-        "code_walkthrough, social_proof, small_talk, out_of_scope\n\n"
-        f"Message: {message}\n\n"
-        "Reply with ONLY the category name, nothing else."
-    )
+    # Quick intent classification via keyword matching (no LLM needed)
+    msg_lower = message.lower()
+    if any(w in msg_lower for w in ["project", "built", "portfolio", "work"]):
+        intent = "projects"
+    elif any(w in msg_lower for w in ["skill", "tech", "stack", "language", "framework"]):
+        intent = "technical_skill"
+    elif any(w in msg_lower for w in ["code", "implement", "architecture", "design pattern"]):
+        intent = "code_walkthrough"
+    elif any(w in msg_lower for w in ["github", "star", "contribution", "open source"]):
+        intent = "social_proof"
+    elif any(w in msg_lower for w in ["who", "about", "background", "experience", "education"]):
+        intent = "personal_info"
+    elif any(w in msg_lower for w in ["hi", "hello", "hey", "thanks", "bye"]):
+        intent = "small_talk"
+    else:
+        intent = "personal_info"  # Default: RAG path
 
-    try:
-        response = await ollama_client.generate(
-            model="llama3.2:3b",
-            prompt=classification_prompt,
-            options={"num_predict": 20, "temperature": 0.1},
-        )
-        
-        raw_intent = response.get("response", "").strip().lower()
-        
-        # Map to valid intents
-        valid_intents = {
-            "personal_info", "projects", "technical_skill",
-            "code_walkthrough", "social_proof", "small_talk",
-            "out_of_scope",
-        }
-        
-        # Find best match
-        intent = "small_talk"  # default
-        for valid in valid_intents:
-            if valid in raw_intent:
-                intent = valid
-                break
-        
-        state["intent"] = intent
-        state["confidence"] = 0.8
-        logger.debug(f"Router: '{message[:40]}...' → {intent}")
-        
-    except Exception as e:
-        logger.warning(f"Router classification failed: {e}")
-        state["intent"] = "small_talk"
-        state["confidence"] = 0.3
+    model = await select_model(intent, complexity)
 
-    return state
+    return {
+        "intent": intent,
+        "complexity": complexity,
+        "model": model,
+    }
 
 
 async def rag_node(state: dict) -> dict:
-    """
-    RAG retrieval + synthesis node.
-    Retrieves relevant knowledge and generates a grounded response.
-    """
-    from backend.llm.ollama_client import ollama_client
-    from backend.llm.router import model_router
-    from backend.llm.prompt_factory import prompt_factory
-
-    message = _get(state, "message", "")
-    persona = _get(state, "visitor_persona", "casual")
-    intent = _get(state, "intent", "projects")
-
-    # Step 1: Retrieve knowledge chunks
-    chunks: list[dict] = []
+    """Retrieve context from hybrid search."""
     try:
         from backend.rag.hybrid_search import HybridSearchEngine
-        search_engine = HybridSearchEngine(ollama_client=ollama_client)
-        chunks = await search_engine.search(
-            query=message,
-            persona=persona,
-            top_k=5,
-            use_hyde=True,
-            use_colbert=False,  # Skip in dev if not available
-        )
+        from backend.db.connections import get_qdrant
+
+        qdrant = get_qdrant()
+        ollama = get_ollama()
+        engine = HybridSearchEngine(qdrant, ollama)
+        chunks = await engine.search(state.get("message", ""), top_k=5)
+
+        return {
+            "rag_chunks": chunks,
+            "cited_sources": [c.get("source", "") for c in chunks if isinstance(c, dict)],
+        }
     except Exception as e:
-        logger.debug(f"RAG search failed (will generate without context): {e}")
-
-    state["rag_chunks"] = chunks
-
-    # Step 2: Select model
-    model = await model_router.select_model(
-        intent=intent,
-        persona=persona,
-        ollama_circuit_open=ollama_client.circuit_state == "open",
-    )
-
-    # Step 3: Build token-budgeted prompt
-    built = prompt_factory.build(
-        model=model,
-        owner_name=state.get("owner_name", "Aman"),
-        visitor_persona=persona,
-        rag_chunks=chunks,
-        kg_context=_get(state, "kg_context", ""),
-        episodic_summary=_get(state, "episodic_summary", ""),
-        conversation_history=_get(state, "working_memory", []),
-        user_message=message,
-        company_context=state.get("company_context"),
-        visit_count=state.get("visit_count", 1),
-        conversion_action=_get(state, "conversion_action", "none"),
-    )
-
-    # Step 4: Generate response
-    try:
-        response = await ollama_client.generate(
-            model=model,
-            prompt=message,
-            system=built.system,
-            options={"num_predict": 500, "temperature": 0.7},
-        )
-        state["raw_response"] = response.get("response", "").strip()
-        state["cited_sources"] = [
-            c.get("metadata", {}).get("source", c.get("source", ""))
-            for c in chunks[:3]
-            if c
-        ]
-    except Exception as e:
-        logger.warning(f"RAG generation failed: {e}")
-        state["raw_response"] = (
-            "I'm having a brief moment — could you try that question again?"
-        )
-        state["cited_sources"] = []
-
-    return state
-
-
-async def social_node(state: dict) -> dict:
-    """
-    Social proof agent — GitHub activity, commit stats, etc.
-    """
-    from backend.llm.ollama_client import ollama_client
-
-    message = _get(state, "message", "")
-
-    try:
-        response = await ollama_client.generate(
-            model="llama3.2:3b",
-            prompt=(
-                "Based on what you know about this software engineer, "
-                "provide social proof and evidence of their work. "
-                f"Question: {message}\n\n"
-                "Include specific project names, GitHub stats, and "
-                "contribution history if available."
-            ),
-            system=(
-                "You are an AI representing a software engineer. "
-                "Focus on concrete evidence: repos, commits, stars, "
-                "technologies used. Be specific and factual."
-            ),
-            options={"num_predict": 300},
-        )
-        state["raw_response"] = response.get("response", "").strip()
-    except Exception as e:
-        logger.warning(f"Social agent failed: {e}")
-        state["raw_response"] = "Let me share some of our project highlights..."
-
-    return state
-
-
-async def code_node(state: dict) -> dict:
-    """
-    Code walkthrough agent — uses qwen2.5:3b for technical depth.
-    """
-    from backend.llm.ollama_client import ollama_client
-
-    message = _get(state, "message", "")
-
-    try:
-        response = await ollama_client.generate(
-            model="qwen2.5:3b",
-            prompt=message,
-            system=(
-                "You are a senior engineer explaining code architecture. "
-                "Be precise about design patterns, tradeoffs, and implementation details. "
-                "Use code snippets when helpful. Treat the questioner as a technical peer."
-            ),
-            options={"num_predict": 500, "temperature": 0.5},
-        )
-        state["raw_response"] = response.get("response", "").strip()
-    except Exception as e:
-        logger.warning(f"Code agent failed: {e}")
-        state["raw_response"] = "Let me walk through the architecture..."
-
-    return state
+        logger.warning(f"RAG search failed: {e}")
+        return {"rag_chunks": [], "cited_sources": []}
 
 
 async def persona_node(state: dict) -> dict:
-    """
-    Digital Twin Engine — final persona voice pass.
-    Adjusts tone/depth based on visitor persona.
-    """
-    raw = _get(state, "raw_response", "")
-    persona = _get(state, "visitor_persona", "casual")
-    intent = _get(state, "intent", "small_talk")
+    """Generate the final response with persona + context."""
+    ollama = get_ollama()
+    model = state.get("model", settings.LLM_MODEL_MEDIUM)
+    message = state.get("message", "")
+    rag_chunks = state.get("rag_chunks", [])
+    visitor_persona = state.get("visitor_persona", "casual")
+    working_memory = state.get("working_memory", [])
 
-    # For small talk / out of scope, generate directly
-    if intent in ("small_talk", "out_of_scope") and not raw:
-        from backend.llm.ollama_client import ollama_client
-        
-        message = _get(state, "message", "")
-        try:
-            response = await ollama_client.generate(
-                model="llama3.2:3b",
-                prompt=message,
-                system=(
-                    "You are Aman's AI representative. Be warm, helpful, and direct. "
-                    "For casual questions or greetings, be friendly. "
-                    "For out-of-scope questions, gently redirect to Aman's work. "
-                    "Never pretend to be human. Keep it brief (2-3 sentences)."
-                ),
-                options={"num_predict": 200, "temperature": 0.8},
-            )
-            raw = response.get("response", "").strip()
-        except Exception as e:
-            logger.debug(f"Persona direct generation failed: {e}")
-            raw = "Hey! I'm Aman's AI — ask me about his projects, skills, or experience!"
+    # Build context from RAG chunks
+    context_parts = []
+    for chunk in rag_chunks[:5]:
+        if isinstance(chunk, dict):
+            context_parts.append(chunk.get("content", ""))
+        elif isinstance(chunk, str):
+            context_parts.append(chunk)
+    context = "\n---\n".join(context_parts) if context_parts else ""
 
-    state["final_response"] = raw
-    return state
+    # Build system prompt
+    system = f"""You are {settings.OWNER_NAME}'s AI digital twin — a warm, direct, technically precise presence.
+You represent {settings.OWNER_NAME} ({settings.OWNER_TITLE}) authentically.
 
+RULES:
+- Ground every claim in the context provided. Never fabricate projects or experiences.
+- If asked something not in your context, say "I don't have specific details on that, but here's what I know..."
+- Be conversational, not robotic. Show personality.
+- Adapt tone for visitor persona: {visitor_persona}
+- Keep responses concise but substantive (2-4 paragraphs max).
+"""
 
-async def ambient_node(state: dict) -> dict:
-    """
-    Ambient intelligence — adds proactive suggestions.
-    Analyzes the conversation to suggest relevant next steps.
-    """
-    persona = _get(state, "visitor_persona", "casual")
-    intent = _get(state, "intent", "")
-    visit_count = state.get("visit_count", 1)
-    response = _get(state, "final_response", "")
+    if context:
+        system += f"\n\nRELEVANT CONTEXT:\n{context}"
 
-    # Determine conversion action based on signals
-    conversion = "none"
+    # Build messages from working memory
+    messages = []
+    for turn in working_memory[-10:]:  # Last 5 exchanges
+        messages.append({"role": turn.get("role", "user"), "content": turn.get("content", "")})
+    messages.append({"role": "user", "content": message})
 
-    if persona == "technical_recruiter" and visit_count >= 2:
-        conversion = "brief"
-    elif persona == "senior_engineer" and intent in ("technical_skill", "code_walkthrough"):
-        conversion = "walkthrough"
-    elif intent == "projects" and visit_count >= 3:
-        conversion = "interview"
+    try:
+        # Stream tokens
+        tokens = []
+        async for token in ollama.stream_chat(
+            model=model,
+            messages=messages,
+            system=system,
+            options={"temperature": 0.7, "num_predict": 1024},
+        ):
+            tokens.append(token)
 
-    state["conversion_action"] = conversion
-    return state
+        full_response = "".join(tokens)
+        return {
+            "stream_tokens": tokens,
+            "final_response": full_response,
+        }
+    except Exception as e:
+        logger.error(f"Persona generation failed: {e}")
+        fallback = f"I'm {settings.OWNER_NAME}'s AI assistant. I'm having a moment — could you try that question again?"
+        return {
+            "stream_tokens": [fallback],
+            "final_response": fallback,
+        }
 
 
 async def memory_node(state: dict) -> dict:
-    """
-    Memory manager — saves conversation turn to working memory.
-    Triggers episodic compression every 10 turns.
-    """
-    # In production, this would:
-    # 1. Append to Redis working memory
-    # 2. Check turn count for episodic compression
-    # 3. Update Qdrant semantic memory
-    # For now, just pass through
-    return state
+    """Persist conversation to working memory. (No-op here, done in chat.py)"""
+    return {}
 
 
-# ─── Graph Builder ──────────────────────────────────────────
+# ── Graph Builder ──
 
-def build_agent_graph() -> Any:
-    """
-    Build the LangGraph StateGraph.
-    
-    Falls back to a simple sequential pipeline if LangGraph is not installed.
-    """
+_compiled_graph = None
+
+
+def build_agent_graph():
+    """Build the LangGraph agent graph."""
     try:
         from langgraph.graph import StateGraph, END
 
-        graph = StateGraph(dict)
+        graph = StateGraph(AgentState)
 
         # Add nodes
         graph.add_node("router", router_node)
         graph.add_node("rag", rag_node)
-        graph.add_node("social", social_node)
-        graph.add_node("code", code_node)
         graph.add_node("persona", persona_node)
-        graph.add_node("ambient", ambient_node)
         graph.add_node("memory", memory_node)
 
-        # Entry point
+        # Set entry point
         graph.set_entry_point("router")
 
-        # Conditional routing
-        graph.add_conditional_edges(
-            "router",
-            lambda state: state.get("intent", "small_talk"),
-            {
-                "personal_info": "rag",
-                "projects": "rag",
-                "technical_skill": "code",
-                "social_proof": "social",
-                "code_walkthrough": "code",
-                "small_talk": "persona",
-                "out_of_scope": "persona",
-            },
-        )
+        # Routing: all intents go through RAG first, then persona
+        def route_intent(state):
+            intent = state.get("intent", "out_of_scope")
+            if intent in ("small_talk", "out_of_scope"):
+                return "persona"  # Skip RAG for simple greetings
+            return "rag"
 
-        # All specialists → persona engine
-        for node in ("rag", "social", "code"):
-            graph.add_edge(node, "persona")
+        graph.add_conditional_edges("router", route_intent, {
+            "rag": "rag",
+            "persona": "persona",
+        })
 
-        # Persona → ambient → memory → END
-        graph.add_edge("persona", "ambient")
-        graph.add_edge("ambient", "memory")
+        graph.add_edge("rag", "persona")
+        graph.add_edge("persona", "memory")
         graph.add_edge("memory", END)
 
-        compiled = graph.compile()
-        logger.info("✅ LangGraph agent graph compiled successfully")
-        return compiled
+        return graph.compile()
 
-    except ImportError:
-        logger.warning(
-            "LangGraph not installed — using sequential fallback pipeline"
-        )
+    except ImportError as e:
+        logger.warning(f"LangGraph not available ({e}), using fallback pipeline")
         return None
 
 
+def get_compiled_graph():
+    """Get or build the compiled agent graph (lazy singleton)."""
+    global _compiled_graph
+    if _compiled_graph is None:
+        _compiled_graph = build_agent_graph()
+    return _compiled_graph
+
+
+# ── Fallback Pipeline (no LangGraph) ──
+
 class FallbackPipeline:
-    """
-    Simple sequential pipeline when LangGraph is not available.
-    Router → RAG → Persona → Memory
-    """
+    """Sequential pipeline when LangGraph isn't available."""
+
+    async def astream(self, state: dict):
+        """Mimics LangGraph astream interface."""
+        # Step 1: Router
+        router_output = await router_node(state)
+        state.update(router_output)
+        yield {"router": router_output}
+
+        # Step 2: RAG (skip for small_talk)
+        if state.get("intent") not in ("small_talk", "out_of_scope"):
+            rag_output = await rag_node(state)
+            state.update(rag_output)
+            yield {"rag": rag_output}
+
+        # Step 3: Persona
+        persona_output = await persona_node(state)
+        state.update(persona_output)
+        yield {"persona": persona_output}
 
     async def ainvoke(self, state: dict) -> dict:
-        """Run the pipeline sequentially."""
-        state = await router_node(state)
-
-        intent = state.get("intent", "small_talk")
-        if intent in ("personal_info", "projects"):
-            state = await rag_node(state)
-        elif intent in ("technical_skill", "code_walkthrough"):
-            state = await code_node(state)
-        elif intent == "social_proof":
-            state = await social_node(state)
-
-        state = await persona_node(state)
-        state = await ambient_node(state)
-        state = await memory_node(state)
-
+        """Run full pipeline and return final state."""
+        async for chunk in self.astream(state):
+            for node_name, node_output in chunk.items():
+                state.update(node_output)
         return state
 
 
-# Build the graph (or fallback)
-_compiled_graph = build_agent_graph()
-if _compiled_graph is None:
-    _compiled_graph = FallbackPipeline()
+_fallback_pipeline = None
 
 
-async def run_agent(
-    message: str,
-    session_id: str,
-    visitor_persona: str = "casual",
-    company_context: str | None = None,
-    visit_count: int = 1,
-    working_memory: list[dict] | None = None,
-    episodic_summary: str = "",
-    owner_name: str = "Aman",
-) -> dict:
-    """
-    Run the agent graph for a single message.
-    
-    This is the main entry point for processing a chat message.
-    Returns the complete agent state with final_response.
-    """
-    initial_state = {
-        "session_id": session_id,
-        "user_id": None,
-        "message": message,
-        "visitor_persona": visitor_persona,
-        "company_context": company_context,
-        "visit_count": visit_count,
-        "working_memory": working_memory or [],
-        "episodic_summary": episodic_summary,
-        "owner_name": owner_name,
-        "intent": "",
-        "confidence": 0.0,
-        "rag_chunks": [],
-        "kg_context": "",
-        "raw_response": "",
-        "cited_sources": [],
-        "conversion_action": "none",
-        "final_response": "",
-        "stream_tokens": [],
-    }
-
-    try:
-        result = await _compiled_graph.ainvoke(initial_state)
-        return result
-    except Exception as e:
-        logger.error(f"Agent graph failed: {e}")
-        initial_state["final_response"] = (
-            "I hit a brief issue processing that. Could you try again?"
-        )
-        return initial_state
-
-
-# Test function (used by: make debug-agents)
-def test_graph() -> None:
-    """Synchronous test runner."""
-    import asyncio
-
-    async def _run():
-        result = await run_agent(
-            message="What are your best AI projects?",
-            session_id="test-123",
-            visitor_persona="technical_recruiter",
-        )
-        print("✅ Agent graph test passed")
-        print(f"Intent detected: {result.get('intent', 'unknown')}")
-        response = result.get("final_response", "")
-        print(f"Response preview: {response[:200]}...")
-        return result
-
-    asyncio.run(_run())
+def get_fallback_pipeline() -> FallbackPipeline:
+    global _fallback_pipeline
+    if _fallback_pipeline is None:
+        _fallback_pipeline = FallbackPipeline()
+    return _fallback_pipeline
