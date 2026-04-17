@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ Owner identity cache skipped: {e}")
 
-    logger.info("✅ ANTIGRAVITY OS v4 ready")
+    logger.info("✅ AGENTIC OS v4 ready")
     yield
 
     # Cleanup
