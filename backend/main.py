@@ -77,6 +77,10 @@ def create_app() -> FastAPI:
     # ── Routes ──
     app.include_router(api_router)
 
+    # ── ANTIGRAVITY OS Routes ──
+    from backend.api.antigravity import router as antigravity_router
+    app.include_router(antigravity_router)
+
     # ── Observability ──
     from backend.observability.metrics import setup_observability
     setup_observability(app)

@@ -99,3 +99,64 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON user_sessions (user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_anonymous ON user_sessions (anonymous_id);
+
+-- ═══════════════════════════════════════════════════════════
+-- Knowledge Graph (ANTIGRAVITY OS §10)
+-- ═══════════════════════════════════════════════════════════
+
+-- ─── KG Entities ───
+CREATE TABLE IF NOT EXISTS kg_entities (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type        VARCHAR(50) NOT NULL,
+    name        VARCHAR(200) NOT NULL,
+    properties  JSONB NOT NULL DEFAULT '{}',
+    embedding   vector(768),
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_kg_entities_type ON kg_entities (type);
+CREATE INDEX IF NOT EXISTS idx_kg_entities_name ON kg_entities (LOWER(name));
+CREATE INDEX IF NOT EXISTS idx_kg_entities_embedding ON kg_entities USING ivfflat (embedding vector_cosine_ops) WITH (lists = 50);
+
+-- ─── KG Relations ───
+CREATE TABLE IF NOT EXISTS kg_relations (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_id       UUID REFERENCES kg_entities(id) ON DELETE CASCADE,
+    target_id       UUID REFERENCES kg_entities(id) ON DELETE CASCADE,
+    relation_type   VARCHAR(100) NOT NULL,
+    weight          FLOAT DEFAULT 1.0,
+    evidence        TEXT DEFAULT '',
+    properties      JSONB DEFAULT '{}',
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_kg_relations_source ON kg_relations (source_id);
+CREATE INDEX IF NOT EXISTS idx_kg_relations_target ON kg_relations (target_id);
+CREATE INDEX IF NOT EXISTS idx_kg_relations_type ON kg_relations (relation_type);
+
+-- ═══════════════════════════════════════════════════════════
+-- Visitor Profiles (ANTIGRAVITY OS §4.2)
+-- ═══════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS visitor_profiles (
+    id                  SERIAL PRIMARY KEY,
+    visitor_id          VARCHAR(128) UNIQUE NOT NULL,
+    persona             VARCHAR(50) DEFAULT 'casual',
+    company             VARCHAR(200),
+    topics_covered      JSONB DEFAULT '[]'::jsonb,
+    projects_shown      JSONB DEFAULT '[]'::jsonb,
+    questions_asked     JSONB DEFAULT '[]'::jsonb,
+    high_engagement_topics JSONB DEFAULT '[]'::jsonb,
+    clicked_repos       JSONB DEFAULT '[]'::jsonb,
+    visit_count         INTEGER DEFAULT 1,
+    relationship_tier   VARCHAR(20) DEFAULT 'new',
+    asked_availability  BOOLEAN DEFAULT FALSE,
+    asked_contact       BOOLEAN DEFAULT FALSE,
+    downloaded_brief    BOOLEAN DEFAULT FALSE,
+    first_visit         TIMESTAMPTZ DEFAULT NOW(),
+    last_visit          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_visitor_profiles_id ON visitor_profiles (visitor_id);
+CREATE INDEX IF NOT EXISTS idx_visitor_profiles_persona ON visitor_profiles (persona);

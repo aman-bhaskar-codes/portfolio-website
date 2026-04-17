@@ -69,13 +69,22 @@ class Settings(BaseSettings):
     # ─── Social APIs ───
     GITHUB_TOKEN: str = ""
     GITHUB_USERNAME: str = "aman-bhaskar-codes"
+    GITHUB_WEBHOOK_SECRET: str = ""
     LINKEDIN_API_KEY: str = ""
     INSTAGRAM_ACCESS_TOKEN: str = ""
 
     # ─── Owner Identity ───
     OWNER_NAME: str = "Aman Bhaskar"
-    OWNER_TITLE: str = "AI Systems Engineer"
+    OWNER_TITLE: str = "Senior AI Architect"
     OWNER_BIO: str = "Architecting cognitive platforms that bridge the gap between human intent and autonomous execution."
+
+    # ─── ANTIGRAVITY OS ───
+    SEMANTIC_CACHE_TTL: int = 14400         # 4 hours
+    SEMANTIC_CACHE_THRESHOLD: float = 0.93  # cosine similarity for cache hit
+    AMBIENT_COOLDOWN_SECONDS: int = 300     # min 5 min between ambient triggers
+    FRESHNESS_CHECK_INTERVAL: int = 3600    # check stale chunks every hour
+    KNOWLEDGE_GRAPH_ENABLED: bool = True
+    VISITOR_PROFILING_ENABLED: bool = True
 
     # ─── CORS ───
     CORS_ORIGINS: list[str] = [
