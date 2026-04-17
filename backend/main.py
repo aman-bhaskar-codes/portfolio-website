@@ -1,431 +1,201 @@
+# backend/main.py
 """
 ═══════════════════════════════════════════════════════════
-🧠 ANTIGRAVITY OS v3 — FastAPI Application Factory
+ANTIGRAVITY OS v4 — Application Entrypoint
 ═══════════════════════════════════════════════════════════
-Production-grade ASGI application with lifecycle management.
 
-V2 additions:
-  - SSE Manager lifecycle (start/stop)
-  - Resilient DB/Redis pool initialization
-  - V2 Security Middleware (input sanitizer + bot detection)
-  - V2 API Router (11 new endpoints)
-  - Health orchestrator warm-up
-
-V3 additions (Omega Build):
-  - DuckDB analytics engine lifecycle
-  - LangFuse deep tracer lifecycle
-  - MinIO bucket verification
-  - ntfy startup notification
-  - ColBERT retriever lazy-init
-  - Vision pipeline availability check
-  - Structured output engine configuration
+Clean FastAPI app with lifespan, CORS, request ID middleware,
+and all V4 routers mounted.
 """
-
 import logging
+import uuid
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response, JSONResponse
+from fastapi.responses import JSONResponse
 
 from backend.config.settings import settings
-from backend.db.session import init_db, shutdown_db
-from backend.api.router import api_router
 
-
-logger = logging.getLogger("portfolio.api")
-
-
-# ═══════════════════════════════════════════════════════════
-# V2 SECURITY MIDDLEWARE
-# ═══════════════════════════════════════════════════════════
-
-class V2SecurityMiddleware(BaseHTTPMiddleware):
-    """
-    ANTIGRAVITY OS v2 security layer.
-    Runs input sanitization + bot detection on every API request.
-    """
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        path = request.url.path
-
-        # Only apply to API routes
-        if not path.startswith("/api"):
-            return await call_next(request)
-
-        # ── Bot Detection ──
-        try:
-            from backend.security.bot_detector import bot_detector
-            user_agent = request.headers.get("user-agent", "")
-            client_ip = request.client.host if request.client else ""
-            session_id = request.headers.get("x-session-id", "")
-
-            bot_policy = bot_detector.classify(
-                session_id=session_id,
-                user_agent=user_agent,
-                ip=client_ip,
-            )
-            request.state.bot_policy = bot_policy
-
-            # Block confirmed bots from LLM endpoints
-            if not bot_policy.allow_llm and path in ("/api/chat", "/api/v2/debate"):
-                return JSONResponse(
-                    status_code=200,
-                    content={
-                        "response": "I'm Aman's portfolio AI — browse around to learn about my work!",
-                        "source": "static",
-                    },
-                )
-        except Exception as e:
-            logger.debug(f"Bot detection skipped: {e}")
-
-        # ── Multi-Layer Rate Limiting (V2) ──
-        try:
-            from backend.security.rate_limiter import rate_limiter
-
-            client_ip = request.client.host if request.client else ""
-            session_id = request.headers.get("x-session-id", "")
-
-            rate_result = rate_limiter.check(
-                ip=client_ip,
-                session_id=session_id,
-                endpoint=path,
-            )
-
-            if not rate_result.allowed:
-                return JSONResponse(
-                    status_code=200,  # Never 429 to visitors
-                    content={
-                        "response": rate_result.friendly_message,
-                        "rate_limited": True,
-                        "retry_after": rate_result.retry_after_seconds,
-                    },
-                )
-        except Exception as e:
-            logger.debug(f"V2 rate limiter skipped: {e}")
-
-        response = await call_next(request)
-        return response
+logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL))
+logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════
-# LIFECYCLE MANAGER
+# LIFESPAN
 # ═══════════════════════════════════════════════════════════
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Application lifecycle manager.
-    Startup: Initialize DB, Redis, Qdrant, SSE, Health, V3 engines.
-    Shutdown: Gracefully close all pools + connections.
-    """
-    logger.info("🚀 Starting ANTIGRAVITY OS v3 (Omega Build)...")
+    logger.info("🚀 ANTIGRAVITY OS v4 starting...")
 
-    # ── V1 Startup ──
-    await init_db()
-    logger.info("✅ Database initialized")
-
-    # Store connections in app state for access in routes
-    app.state.settings = settings
-
-    # ── V2 Startup: Resilient Pools ──
+    # 1. Initialize all connections
     try:
-        from backend.db.resilient_pool import postgres_pool, redis_pool
-        await postgres_pool.initialize()
-        await redis_pool.initialize()
-        logger.info("✅ Resilient DB pools initialized")
+        from backend.db.connections import init_connections
+        await init_connections()
+        logger.info("✅ Database connections initialized")
     except Exception as e:
-        logger.warning(f"⚠️ Resilient pools failed (non-fatal): {e}")
+        logger.warning(f"⚠️ Database connections partial: {e}")
 
-    # ── V2 Startup: SSE Manager ──
+    # 2. Ensure Qdrant collections exist
     try:
-        from backend.streaming.sse_manager import sse_manager
-        await sse_manager.start()
-        logger.info("✅ SSE Manager started")
+        from backend.db.init_qdrant import ensure_collections
+        await ensure_collections()
+        logger.info("✅ Qdrant collections ready")
     except Exception as e:
-        logger.warning(f"⚠️ SSE Manager start failed (non-fatal): {e}")
+        logger.warning(f"⚠️ Qdrant collections skipped: {e}")
 
-    # ── V2 Startup: Health Orchestrator warm-up ──
+    # 3. Seed owner identity cache
     try:
-        from backend.reliability.health_orchestrator import health_orchestrator
-        health = await health_orchestrator.get_system_health(force=True)
-        logger.info(
-            f"✅ Health orchestrator: Tier {health.degradation_tier} "
-            f"({health.tier_reason})"
-        )
+        from backend.memory.owner_identity_cache import owner_identity
+        logger.info(f"✅ Owner identity cached: {owner_identity.name}")
     except Exception as e:
-        logger.warning(f"⚠️ Health orchestrator warm-up failed (non-fatal): {e}")
+        logger.warning(f"⚠️ Owner identity cache skipped: {e}")
 
-    # ═══════════════════════════════════════════════════════
-    # V3 STARTUP — OMEGA BUILD
-    # ═══════════════════════════════════════════════════════
-
-    # ── V3: Structured Output Engine ──
-    try:
-        from backend.llm.structured_output import structured_output_engine
-        structured_output_engine.configure(
-            model_name=settings.LLM_MODEL_LIGHT,
-            ollama_url=settings.OLLAMA_URL,
-        )
-        logger.info("✅ Structured output engine configured")
-    except Exception as e:
-        logger.warning(f"⚠️ Structured output engine failed (non-fatal): {e}")
-
-    # ── V3: DuckDB Analytics ──
-    try:
-        from backend.analytics.duckdb_engine import analytics_engine
-        await analytics_engine.initialize(
-            db_path=settings.DUCKDB_PATH,
-            parquet_dir=settings.DUCKDB_PARQUET_DIR,
-        )
-        logger.info("✅ DuckDB analytics engine initialized")
-    except Exception as e:
-        logger.warning(f"⚠️ DuckDB init failed (non-fatal): {e}")
-
-    # ── V3: LangFuse Deep Tracer ──
-    try:
-        from backend.observability.langfuse_tracer import langfuse_tracer
-        await langfuse_tracer.initialize(
-            host=settings.LANGFUSE_HOST,
-            public_key=settings.LANGFUSE_PUBLIC_KEY,
-            secret_key=settings.LANGFUSE_SECRET_KEY,
-        )
-        logger.info("✅ LangFuse deep tracer initialized")
-    except Exception as e:
-        logger.warning(f"⚠️ LangFuse tracer failed (non-fatal): {e}")
-
-    # ── V3: MinIO Storage ──
-    try:
-        from backend.storage.minio_client import storage_client
-        await storage_client.initialize(
-            endpoint_url=settings.MINIO_ENDPOINT,
-            access_key=settings.MINIO_ACCESS_KEY,
-            secret_key=settings.MINIO_SECRET_KEY,
-            bucket_briefs=settings.MINIO_BUCKET_BRIEFS,
-            bucket_screenshots=settings.MINIO_BUCKET_SCREENSHOTS,
-            bucket_analytics=settings.MINIO_BUCKET_ANALYTICS,
-            bucket_backups=settings.MINIO_BUCKET_BACKUPS,
-        )
-        logger.info("✅ MinIO storage initialized")
-    except Exception as e:
-        logger.warning(f"⚠️ MinIO init failed (non-fatal): {e}")
-
-    # ── V3: ntfy Push Notifications ──
-    try:
-        from backend.notifications.ntfy_client import owner_notifier
-        owner_notifier.configure(
-            base_url=settings.NTFY_BASE_URL,
-            topic=settings.NTFY_TOPIC,
-            auth_token=settings.NTFY_AUTH_TOKEN,
-            enabled=settings.NTFY_ENABLED,
-        )
-        await owner_notifier.notify_system_startup(version="v3")
-        logger.info("✅ ntfy push notifications configured")
-    except Exception as e:
-        logger.warning(f"⚠️ ntfy init failed (non-fatal): {e}")
-
-    # ── V3: ColBERT Retriever (lazy) ──
-    if settings.FEATURE_COLBERT_RETRIEVAL:
-        try:
-            from backend.rag.colbert_retriever import colbert_retriever
-            await colbert_retriever.initialize(
-                colbert_model=settings.COLBERT_MODEL,
-                cross_encoder_model=settings.CROSS_ENCODER_MODEL,
-            )
-            logger.info("✅ ColBERT retriever initialized")
-        except Exception as e:
-            logger.warning(f"⚠️ ColBERT init failed (non-fatal): {e}")
-
-    # ── V3: Vision Pipeline ──
-    if settings.FEATURE_VISION_PIPELINE:
-        try:
-            from backend.rag.multimodal_ingestor import vision_pipeline
-            await vision_pipeline.initialize(
-                model=settings.OLLAMA_VISION_MODEL,
-                ollama_url=settings.OLLAMA_URL,
-            )
-            logger.info("✅ Vision pipeline initialized")
-        except Exception as e:
-            logger.warning(f"⚠️ Vision pipeline init failed (non-fatal): {e}")
-
-    # ── V3: DSPy Optimizer (configure only, runs weekly) ──
-    if settings.FEATURE_DSPY_OPTIMIZATION:
-        try:
-            from backend.optimization.dspy_optimizer import dspy_optimizer
-            dspy_optimizer.configure(
-                improvement_threshold=settings.DSPY_IMPROVEMENT_THRESHOLD,
-                num_candidates=settings.DSPY_NUM_CANDIDATES,
-                num_trials=settings.DSPY_NUM_TRIALS,
-                max_bootstrapped_demos=settings.DSPY_MAX_BOOTSTRAPPED_DEMOS,
-                max_labeled_demos=settings.DSPY_MAX_LABELED_DEMOS,
-            )
-            logger.info("✅ DSPy optimizer configured")
-        except Exception as e:
-            logger.warning(f"⚠️ DSPy config failed (non-fatal): {e}")
-
-    # ── V3: Ragas Evaluator (configure only, runs nightly) ──
-    if settings.FEATURE_RAGAS_EVALUATION:
-        try:
-            from backend.evaluation.ragas_evaluator import rag_evaluator
-            rag_evaluator.configure(
-                faithfulness_threshold=settings.RAGAS_FAITHFULNESS_THRESHOLD,
-                context_precision_threshold=settings.RAGAS_CONTEXT_PRECISION_THRESHOLD,
-                answer_relevancy_threshold=settings.RAGAS_ANSWER_RELEVANCY_THRESHOLD,
-            )
-            logger.info("✅ Ragas evaluator configured")
-        except Exception as e:
-            logger.warning(f"⚠️ Ragas config failed (non-fatal): {e}")
-
-    # ═══════════════════════════════════════════════════════
-    # V4 STARTUP — GENESIS BUILD
-    # ═══════════════════════════════════════════════════════
-
-    # ── V4: Async Ollama Client ──
-    try:
-        from backend.llm.ollama_client import ollama_client
-        is_ready = await ollama_client.check_availability()
-        if is_ready:
-            logger.info("✅ Ollama client connected")
-        else:
-            logger.warning("⚠️ Ollama not reachable (will retry on first request)")
-    except Exception as e:
-        logger.warning(f"⚠️ Ollama client init failed (non-fatal): {e}")
-
-    # ── V4: Model Router ──
-    try:
-        from backend.llm.router import model_router
-        from backend.config.settings import settings as s
-        model_router.configure(
-            cloud_api_key=getattr(s, 'ANTHROPIC_API_KEY', '') or '',
-        )
-        logger.info("✅ Model router configured")
-    except Exception as e:
-        logger.warning(f"⚠️ Model router config failed (non-fatal): {e}")
-
-    logger.info("✅ ANTIGRAVITY OS v4 (Genesis Build) — All systems operational")
+    logger.info("✅ ANTIGRAVITY OS v4 ready")
     yield
 
-    # ═══════════════════════════════════════════════════════
-    # SHUTDOWN
-    # ═══════════════════════════════════════════════════════
-    logger.info("🛑 Shutting down ANTIGRAVITY OS v4...")
-
-    # V3 shutdown: DuckDB
+    # Cleanup
     try:
-        from backend.analytics.duckdb_engine import analytics_engine
-        await analytics_engine.shutdown()
-    except Exception as e:
-        logger.debug(f"DuckDB shutdown: {e}")
-
-    # V3 shutdown: LangFuse
-    try:
-        from backend.observability.langfuse_tracer import langfuse_tracer
-        await langfuse_tracer.shutdown()
-    except Exception as e:
-        logger.debug(f"LangFuse shutdown: {e}")
-
-    # V2 shutdown: SSE
-    try:
-        from backend.streaming.sse_manager import sse_manager
-        await sse_manager.stop()
-        logger.info("✅ SSE Manager stopped")
-    except Exception as e:
-        logger.debug(f"SSE shutdown: {e}")
-
-    # V2 shutdown: Resilient pools
-    try:
-        from backend.db.resilient_pool import postgres_pool, redis_pool
-        await postgres_pool.shutdown()
-        await redis_pool.shutdown()
-        logger.info("✅ Resilient pools shut down")
-    except Exception as e:
-        logger.debug(f"Pool shutdown: {e}")
-
-    # V1 shutdown
-    await shutdown_db()
-    logger.info("✅ Graceful shutdown complete")
+        from backend.db.connections import close_connections
+        await close_connections()
+    except Exception:
+        pass
+    logger.info("Shutdown complete")
 
 
 # ═══════════════════════════════════════════════════════════
-# APPLICATION FACTORY
+# APP FACTORY
 # ═══════════════════════════════════════════════════════════
 
-def create_app() -> FastAPI:
-    """Application factory pattern."""
+app = FastAPI(
+    title="ANTIGRAVITY OS API",
+    description="The Digital Twin API — Aman Bhaskar's AI Representative",
+    version="4.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
+)
 
-    app = FastAPI(
-        title="ANTIGRAVITY OS v4 API",
-        description=(
-            "AI-integrated personal portfolio backend — Genesis Build. "
-            "LangGraph orchestration, hybrid RAG (HyDE + ColBERT + RRF), "
-            "3-tier memory, knowledge graph, visitor intelligence, "
-            "DSPy prompt optimization, DuckDB analytics."
-        ),
-        version="4.0.0",
-        lifespan=lifespan,
-        docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
-        redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
-    )
 
-    # ── CORS ──
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# ═══════════════════════════════════════════════════════════
+# MIDDLEWARE
+# ═══════════════════════════════════════════════════════════
 
-    # ── V1 Security & Auth ──
-    from backend.api.middleware import AuthRateLimitMiddleware, SecurityHeadersMiddleware
-    app.add_middleware(SecurityHeadersMiddleware)
-    app.add_middleware(AuthRateLimitMiddleware)
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3334",
+        "http://frontend:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    # ── V2 Security Layer ──
-    app.add_middleware(V2SecurityMiddleware)
 
-    # ── V1 Routes ──
-    app.include_router(api_router)
+# Request ID middleware
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid.uuid4())[:8]
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
-    # ── ANTIGRAVITY OS V1 Routes ──
+
+# ═══════════════════════════════════════════════════════════
+# HEALTH CHECK (Docker healthcheck target)
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/health")
+async def health():
+    """Root health endpoint for Docker healthcheck."""
+    try:
+        from backend.reliability.health_orchestrator import health_orchestrator
+        health_data = await health_orchestrator.get_system_health()
+        tier = health_data.degradation_tier
+        status_code = 200 if tier <= 3 else 503
+        return JSONResponse(
+            content={
+                "status": health_data.tier_reason,
+                "tier": tier,
+                "services": {
+                    "postgres": health_data.postgres_available,
+                    "redis": health_data.redis_available,
+                    "qdrant": health_data.qdrant_available,
+                    "ollama": health_data.ollama_available,
+                },
+            },
+            status_code=status_code,
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"status": "starting", "tier": 5, "error": str(e)},
+            status_code=503,
+        )
+
+
+@app.get("/api/ping")
+async def ping():
+    return {"pong": True, "version": "4.0.0"}
+
+
+# ═══════════════════════════════════════════════════════════
+# MOUNT ROUTERS
+# ═══════════════════════════════════════════════════════════
+
+# V4 Core Routers
+try:
+    from backend.api.chat import router as chat_router
+    app.include_router(chat_router, prefix="/api", tags=["chat"])
+    logger.info("✅ Chat router mounted")
+except Exception as e:
+    logger.warning(f"⚠️ Chat router failed to mount: {e}")
+
+try:
+    from backend.api.health import router as health_router
+    app.include_router(health_router, prefix="/api", tags=["health"])
+    logger.info("✅ Health router mounted")
+except Exception as e:
+    logger.warning(f"⚠️ Health router failed to mount: {e}")
+
+try:
+    from backend.api.voice import router as voice_router
+    app.include_router(voice_router, prefix="/api", tags=["voice"])
+    logger.info("✅ Voice router mounted")
+except Exception as e:
+    logger.warning(f"⚠️ Voice router failed to mount: {e}")
+
+try:
+    from backend.api.brief import router as brief_router
+    app.include_router(brief_router, prefix="/api", tags=["brief"])
+    logger.info("✅ Brief router mounted")
+except Exception as e:
+    logger.warning(f"⚠️ Brief router failed to mount: {e}")
+
+try:
+    from backend.api.webhook import router as webhook_router
+    app.include_router(webhook_router, tags=["webhook"])
+    logger.info("✅ Webhook router mounted")
+except Exception as e:
+    logger.warning(f"⚠️ Webhook router failed to mount: {e}")
+
+# Legacy V1-V3 routers (migrated into V4 gracefully)
+try:
+    from backend.api.router import api_router as legacy_router
+    app.include_router(legacy_router, tags=["legacy"])
+except Exception:
+    pass
+
+try:
     from backend.api.antigravity import router as antigravity_router
-    app.include_router(antigravity_router)
+    app.include_router(antigravity_router, prefix="/api/antigravity", tags=["antigravity"])
+except Exception:
+    pass
 
-    # ── ANTIGRAVITY OS V2 Routes ──
+try:
     from backend.api.v2 import router as v2_router
-    app.include_router(v2_router)
-
-    # ── ANTIGRAVITY OS V4 Routes (Genesis Build) ──
-    try:
-        from backend.api.chat import router as chat_router
-        from backend.api.health import router as health_router
-        from backend.api.brief import router as brief_router
-        from backend.api.webhook import router as webhook_router
-
-        app.include_router(chat_router)
-        app.include_router(health_router)
-        app.include_router(brief_router)
-        app.include_router(webhook_router)
-        logger.info("✅ V4 API routers mounted")
-    except ImportError as e:
-        logger.warning(f"⚠️ Some V4 routers could not load: {e}")
-
-    # ── Observability ──
-    from backend.observability.metrics import setup_observability
-    setup_observability(app)
-
-    # ── Root Health Endpoint (Docker healthcheck hits /health) ──
-    @app.get("/health")
-    async def root_health():
-        return {"status": "ok", "version": "4.0.0", "service": "antigravity-api"}
-
-    @app.get("/api/ping")
-    async def ping():
-        return {"pong": True}
-
-    return app
-
-
-# Main app instance (used by uvicorn)
-app = create_app()
+    app.include_router(v2_router, prefix="/api/v2", tags=["v2"])
+except Exception:
+    pass

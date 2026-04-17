@@ -2,54 +2,73 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# System deps for psycopg2, numpy, healthcheck curl, etc.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    curl \
+# System dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        build-essential \
+        libpq-dev \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps
-COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+# Python dependencies (context is project root, so backend/requirements.txt)
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY backend/ /app/backend/
-COPY data/ /app/data/
+# Copy backend code into /app/backend/
+COPY backend/ ./backend/
 
-# Create __init__.py files for proper Python packages
-RUN touch /app/backend/__init__.py \
-    /app/backend/config/__init__.py \
-    /app/backend/api/__init__.py \
-    /app/backend/agents/__init__.py \
-    /app/backend/rag/__init__.py \
-    /app/backend/memory/__init__.py \
-    /app/backend/models/__init__.py \
-    /app/backend/prompts/__init__.py \
-    /app/backend/tools/__init__.py \
-    /app/backend/tasks/__init__.py \
-    /app/backend/db/__init__.py \
-    /app/backend/observability/__init__.py \
-    /app/backend/reliability/__init__.py \
-    /app/backend/security/__init__.py \
-    /app/backend/llm/__init__.py \
-    /app/backend/streaming/__init__.py \
-    /app/backend/analytics/__init__.py \
-    /app/backend/storage/__init__.py \
-    /app/backend/notifications/__init__.py \
-    /app/backend/evaluation/__init__.py \
-    /app/backend/optimization/__init__.py \
-    /app/backend/intelligence/__init__.py \
-    /app/backend/knowledge_graph/__init__.py \
-    /app/backend/session/__init__.py \
-    /app/backend/twin/__init__.py \
-    /app/backend/voice/__init__.py
+# Create V4 package inits (ensure all packages are importable)
+RUN for dir in \
+    backend/db \
+    backend/llm \
+    backend/rag \
+    backend/agents \
+    backend/api \
+    backend/memory \
+    backend/security \
+    backend/reliability \
+    backend/intelligence \
+    backend/knowledge_graph \
+    backend/tasks \
+    backend/analytics \
+    backend/scripts \
+    backend/storage \
+    backend/streaming \
+    backend/observability \
+    backend/notifications \
+    backend/optimization \
+    backend/evaluation \
+    backend/models \
+    backend/brief \
+    backend/cache \
+    backend/tools \
+    backend/config \
+    ; do \
+    mkdir -p "$dir" && touch "$dir/__init__.py"; \
+    done
 
-# Create data directories for V4
-RUN mkdir -p /app/data/analytics/parquet /app/data/security /app/data/engagement /app/data/documents
+# Ensure top-level backend __init__.py
+RUN touch backend/__init__.py
+
+# Copy data placeholders
+COPY data/ /data/ 2>/dev/null || true
+
+# Create data directories
+RUN mkdir -p /data/documents /data/virtual_work /data/models /data/analytics
+
+# Copy tests
+COPY tests/ ./tests/ 2>/dev/null || true
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 EXPOSE 8000
 
-# Production: gunicorn with uvicorn workers
-# Dev: uvicorn with reload
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Run — WORKDIR is /app, module path is backend.main
+CMD ["uvicorn", "backend.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "1", \
+     "--timeout-keep-alive", "120"]

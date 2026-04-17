@@ -31,15 +31,15 @@ services:
   api:
     container_name: antigravity-api
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
     env_file: .env
     environment:
-      - ENV=development
+      - ENVIRONMENT=development
     volumes:
-      - ./backend:/app
+      - ./backend:/app/backend
       - ./data:/data
     depends_on:
       postgres:

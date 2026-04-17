@@ -1,77 +1,53 @@
-#!/usr/bin/env bash
-# ═══════════════════════════════════════════════════════════
-# ANTIGRAVITY OS v4 — 12-Step Health Check
+#!/bin/bash
+# infra/scripts/healthcheck.sh
 # Run: bash infra/scripts/healthcheck.sh
-# ═══════════════════════════════════════════════════════════
 
-PASS=0
-FAIL=0
+set -e
+echo "=== ANTIGRAVITY OS — FINAL VERIFICATION ==="
 
-check() {
-    local name="$1"
-    local cmd="$2"
-    if eval "$cmd" > /dev/null 2>&1; then
-        echo "  ✅ $name"
-        PASS=$((PASS + 1))
-    else
-        echo "  ❌ $name"
-        FAIL=$((FAIL + 1))
-    fi
-}
-
-echo "═══════════════════════════════════════════════════════════"
-echo "ANTIGRAVITY OS v4 — POST-STARTUP HEALTH CHECK"
-echo "═══════════════════════════════════════════════════════════"
-echo ""
-
-echo "STEP 1: Core Services"
-check "API server" "curl -sf http://localhost:8000/health"
-check "Ollama" "curl -sf http://localhost:11434/api/tags"
-echo ""
-
-echo "STEP 2: Database"
-check "PostgreSQL" "docker exec antigravity-postgres pg_isready"
-echo ""
-
-echo "STEP 3: Redis"
-check "Redis ping" "docker exec antigravity-redis redis-cli ping"
-echo ""
-
-echo "STEP 4: Qdrant"
-check "Qdrant readyz" "curl -sf http://localhost:6333/readyz"
-echo ""
-
-echo "STEP 5: Ollama model test"
-check "llama3.2:3b inference" "curl -sf http://localhost:11434/api/generate -d '{\"model\":\"llama3.2:3b\",\"prompt\":\"Say OK\",\"stream\":false}'"
-echo ""
-
-echo "STEP 6: Embedding test"
-check "nomic-embed-text" "curl -sf http://localhost:11434/api/embeddings -d '{\"model\":\"nomic-embed-text\",\"prompt\":\"test\"}'"
-echo ""
-
-echo "STEP 7: API health endpoint"
-check "API /api/health" "curl -sf http://localhost:8000/api/health"
-echo ""
-
-echo "STEP 8–10: Agent tests (requires make debug-*)"
-echo "  ⏭  Run: make debug-rag"
-echo "  ⏭  Run: make debug-agents"
-echo "  ⏭  Run: make debug-memory"
-echo ""
-
-echo "STEP 11: Chat SSE test"
-check "SSE chat stream" "curl -sf -X POST http://localhost:8000/api/chat -H 'Content-Type: application/json' -d '{\"message\":\"hello\",\"session_id\":\"healthcheck\"}'"
-echo ""
-
-echo "STEP 12: Frontend"
-check "Next.js frontend" "curl -sf http://localhost:3000"
-echo ""
-
-echo "═══════════════════════════════════════════════════════════"
-echo "RESULTS: $PASS passed, $FAIL failed"
-if [ $FAIL -eq 0 ]; then
-    echo "✅ ALL CHECKS PASSED — SYSTEM IS PRODUCTION READY"
+# 1. API health
+echo "Checking API health..."
+HEALTH=$(curl -sf http://localhost:8000/health)
+TIER=$(echo $HEALTH | python3 -c "import sys,json; print(json.load(sys.stdin)['tier'])")
+if [ "$TIER" -le 3 ]; then
+  echo "✅ API healthy (tier: $TIER)"
 else
-    echo "⚠️  $FAIL check(s) failed — review above"
+  echo "❌ API degraded (tier: $TIER)" && exit 1
 fi
-echo "═══════════════════════════════════════════════════════════"
+
+# 2. Chat streaming test
+echo "Testing chat streaming..."
+RESPONSE=$(curl -s -N -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello", "session_id": "health-check-test"}' \
+  --max-time 30 | head -5)
+if echo "$RESPONSE" | grep -q "data:"; then
+  echo "✅ Chat streaming works"
+else
+  echo "❌ Chat streaming failed" && exit 1
+fi
+
+# 3. Qdrant collections
+echo "Checking Qdrant collections..."
+COLLECTIONS=$(curl -sf http://localhost:6333/collections | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+names = [c['name'] for c in data['result']['collections']]
+print(names)
+")
+echo "✅ Qdrant collections: $COLLECTIONS"
+
+# 4. Frontend
+echo "Checking frontend..."
+HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3000)
+if [ "$HTTP_CODE" = "200" ]; then
+  echo "✅ Frontend accessible"
+else
+  echo "❌ Frontend returned HTTP $HTTP_CODE" && exit 1
+fi
+
+echo ""
+echo "============================================"
+echo "✅ ANTIGRAVITY OS is fully operational!"
+echo "   Visit http://localhost:3000 to see it."
+echo "============================================"

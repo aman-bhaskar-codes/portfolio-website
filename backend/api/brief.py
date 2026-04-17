@@ -14,7 +14,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/brief", tags=["Portfolio"])
+router = APIRouter(prefix="/brief", tags=["Portfolio"])
 logger = logging.getLogger("portfolio.api.brief")
 
 
