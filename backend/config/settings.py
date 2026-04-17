@@ -138,7 +138,7 @@ class Settings(BaseSettings):
 
     # ─── V3: Vision Model (Local via Ollama) ───
     OLLAMA_VISION_MODEL: str = "llava-phi3"   # ~4.2B params, vision-capable
-    OLLAMA_RERANK_MODEL: str = "mxbai-rerank-large"
+    OLLAMA_RERANK_MODEL: str = "nomic-embed-text"
 
     # ─── V3: ColBERT Retrieval ───
     COLBERT_MODEL: str = "colbert-ir/colbertv2.0"

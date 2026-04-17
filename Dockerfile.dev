@@ -2,7 +2,7 @@
 # Isolates node_modules and .next inside the container,
 # preventing iCloud sync locks while enabling hot-reload.
 
-FROM node:20-alpine
+FROM node:20
 
 WORKDIR /app
 

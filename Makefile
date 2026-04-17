@@ -29,7 +29,6 @@ pull-models:
 	docker exec antigravity-ollama ollama pull qwen2.5:3b
 	docker exec antigravity-ollama ollama pull phi4-mini:latest
 	docker exec antigravity-ollama ollama pull nomic-embed-text
-	docker exec antigravity-ollama ollama pull mxbai-rerank-large
 	@echo "✅ Core models ready"
 
 pull-llava:
@@ -46,7 +45,7 @@ init-db:
 
 seed:
 	@echo "Seeding knowledge base..."
-	docker exec antigravity-api python -m scripts.seed_all
+	docker exec antigravity-api python -m backend.scripts.seed_all
 	@echo "✅ Knowledge base seeded"
 
 health:
