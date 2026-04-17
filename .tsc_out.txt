@@ -1,0 +1,6 @@
+components/engagement/BuildWithMeMode.tsx(78,41): error TS2307: Cannot find module 'mermaid' or its corresponding type declarations.
+npm notice
+npm notice New minor version of npm available! 11.9.0 -> 11.12.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.12.1
+npm notice To update run: npm install -g npm@11.12.1
+npm notice
