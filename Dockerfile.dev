@@ -1,21 +1,26 @@
-# ─── Next.js Development Container ───
-# Isolates node_modules and .next inside the container,
-# preventing iCloud sync locks while enabling hot-reload.
-
-FROM node:20
-
+FROM node:20 AS deps
 WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
 
-# Install dependencies and Prisma targets together
-COPY package.json package-lock.json ./
-COPY prisma ./prisma
-ENV PRISMA_CLIENT_ENGINE_TYPE=binary
-RUN npm ci --legacy-peer-deps
-
-# Copy application source (hot-reload watches these via bind mount)
+FROM node:20 AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npx prisma generate
+RUN npm run build
 
-EXPOSE 3334
-
-# Generate Prisma Client dynamically at runtime to avoid Alpine/macOS architecture clashes, then boot Next.js
-CMD ["sh", "-c", "npx prisma generate && npm run dev"]
+FROM node:20 AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+CMD ["node", "server.js"]
