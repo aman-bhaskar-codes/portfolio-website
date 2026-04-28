@@ -105,8 +105,9 @@ async def chat_endpoint(request: ChatRequest, http_request: Request):
         scan = scan_message(request.message)
         if scan["severity"] == "critical":
             raise HTTPException(status_code=400, detail="Invalid input")
-    except ImportError:
-        pass  # Security module not available, proceed
+    except ImportError as e:
+        logger.error(f"Security module missing: {e}")
+        raise HTTPException(status_code=500, detail="Security module missing")
 
     # Visitor classification
     visitor_info = {"persona": "casual", "visit_count": 1}
@@ -128,6 +129,5 @@ async def chat_endpoint(request: ChatRequest, http_request: Request):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-            "Access-Control-Allow-Origin": "*",
         },
     )

@@ -41,6 +41,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+    const adminKey = req.headers.get("x-admin-key");
+    if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = req.nextUrl.searchParams.get("id");
 
     if (!id) {

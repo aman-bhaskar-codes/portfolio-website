@@ -52,12 +52,13 @@ class Settings(BaseSettings):
     LANGFUSE_SECRET_KEY: str = ""
 
     # ─── Auth ───
-    JWT_SECRET: str = "portfolio-jwt-secret-change-in-production"
+    JWT_SECRET: str = "7298642018596a2b530c149d5a7d8c6b45a6c3f03b879c8d50b4e2d31c6a7e0f"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     CLERK_SECRET_KEY: str = ""
     CLERK_WEBHOOK_SECRET: str = ""
+    ADMIN_KEY: str = ""
 
     # ─── Rate Limiting ───
     RATE_LIMIT_ANON_PER_MIN: int = 20

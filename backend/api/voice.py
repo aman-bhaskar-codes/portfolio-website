@@ -10,6 +10,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from backend.agents.voice_handler import get_voice_handler
 from backend.api.chat import generate_sse_stream, ChatRequest
 from backend.config.settings import settings
+from backend.db.connections import get_redis
+import time
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -26,12 +28,34 @@ async def voice_endpoint(websocket: WebSocket):
         await websocket.close(code=1000, reason="Voice mode disabled")
         return
 
+    client_ip = websocket.client.host if websocket.client else "127.0.0.1"
+    try:
+        redis = get_redis()
+        key = f"rl:ws:voice:{client_ip}"
+        current = int(time.time())
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.zremrangebyscore(key, 0, current - 60)
+            pipe.zadd(key, {str(current): current})
+            pipe.zcard(key)
+            pipe.expire(key, 60)
+            results = await pipe.execute()
+            count = results[2]
+        if count > 10:
+            await websocket.close(code=1008, reason="Rate limit exceeded")
+            return
+    except RuntimeError:
+        pass
+
     await websocket.accept()
     voice = get_voice_handler()
 
     try:
         while True:
             audio_bytes = await websocket.receive_bytes()
+            
+            if len(audio_bytes) > 2 * 1024 * 1024:  # 2MB max
+                await websocket.send_json({"type": "error", "msg": "Audio payload too large"})
+                continue
 
             # Transcribe
             text = await voice.transcribe(audio_bytes)

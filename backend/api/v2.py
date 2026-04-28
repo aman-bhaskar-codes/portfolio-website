@@ -23,8 +23,14 @@ import re
 import time
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Header, Depends
 from pydantic import BaseModel, Field
+from backend.config.settings import settings
+
+def verify_admin(x_admin_token: str = Header(None)):
+    if not x_admin_token or x_admin_token != settings.ADMIN_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return True
 
 logger = logging.getLogger("portfolio.api.v2")
 
@@ -304,7 +310,7 @@ async def get_constellation_data():
 # QUEUE & COST DASHBOARDS
 # ═══════════════════════════════════════════════════════════
 
-@router.get("/queue/stats")
+@router.get("/queue/stats", dependencies=[Depends(verify_admin)])
 async def get_queue_stats():
     """Get request queue metrics."""
     from backend.reliability.request_queue import request_queue
@@ -312,14 +318,14 @@ async def get_queue_stats():
     return stats.model_dump()
 
 
-@router.get("/cost/dashboard")
+@router.get("/cost/dashboard", dependencies=[Depends(verify_admin)])
 async def get_cost_dashboard():
     """Get LLM cost/token dashboard."""
     from backend.llm.cost_controller import cost_controller
     return cost_controller.get_dashboard().model_dump()
 
 
-@router.get("/security/stats")
+@router.get("/security/stats", dependencies=[Depends(verify_admin)])
 async def get_security_stats():
     """Get security event metrics."""
     from backend.reliability.circuit_breaker import get_all_circuit_metrics
@@ -335,7 +341,7 @@ async def get_security_stats():
 # OPPORTUNITIES (PRIVATE)
 # ═══════════════════════════════════════════════════════════
 
-@router.get("/admin/opportunities")
+@router.get("/admin/opportunities", dependencies=[Depends(verify_admin)])
 async def get_opportunities(request: Request):
     """
     Private: Get discovered job opportunities.

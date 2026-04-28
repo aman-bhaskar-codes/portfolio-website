@@ -37,7 +37,7 @@ const chatSchema = z.object({
 export async function POST(req: NextRequest) {
     try {
         // 0. Rate limit check mapped to IP
-        const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+        const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
         try {
             await rateLimiter.consume(ip);
         } catch {

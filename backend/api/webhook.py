@@ -23,7 +23,8 @@ logger = logging.getLogger("portfolio.api.webhook")
 def verify_github_signature(payload: bytes, signature: str) -> bool:
     """Verify HMAC signature from GitHub payload."""
     if not settings.GITHUB_WEBHOOK_SECRET:
-        return True  # Skip if not configured
+        logger.error("GITHUB_WEBHOOK_SECRET is not configured.")
+        return False
         
     if not signature:
         return False

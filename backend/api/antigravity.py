@@ -77,9 +77,10 @@ async def github_webhook(request: Request):
 
     # Verify signature if configured
     webhook_secret = request.app.state.settings.GITHUB_WEBHOOK_SECRET if hasattr(request.app.state, "settings") else ""
-    if webhook_secret and signature:
-        if not processor.verify_signature(body, signature, webhook_secret):
-            raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    if not webhook_secret:
+        raise HTTPException(status_code=500, detail="Webhook secret not configured")
+    if not signature or not processor.verify_signature(body, signature, webhook_secret):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
     payload = json.loads(body)
 
@@ -212,13 +213,25 @@ async def ambient_suggestion(request: Request):
     Returns at most one suggestion per session.
     """
     # Build visitor context from request headers/cookies
+    # Build visitor context from request headers/cookies with validation
     persona_cookie = request.cookies.get("visitor_persona", "casual")
-    company_cookie = request.cookies.get("visitor_company", "")
+    if persona_cookie not in [p.value for p in VisitorPersona]:
+        persona_cookie = "casual"
+        
+    visit_count_str = request.cookies.get("visit_count", "1")
+    try:
+        visit_count = int(visit_count_str)
+        if visit_count < 1 or visit_count > 10000:
+            visit_count = 1
+    except ValueError:
+        visit_count = 1
+
+    company_cookie = request.cookies.get("visitor_company", "")[:100]  # Limit length
 
     context = VisitorContext(
-        visitor_id=request.cookies.get("visitor_id", "anonymous"),
-        persona=VisitorPersona(persona_cookie) if persona_cookie in [p.value for p in VisitorPersona] else VisitorPersona.CASUAL,
-        visit_count=int(request.cookies.get("visit_count", "1")),
+        visitor_id=request.cookies.get("visitor_id", "anonymous")[:50],
+        persona=VisitorPersona(persona_cookie),
+        visit_count=visit_count,
         time_of_day=datetime.now().hour,
         is_weekday=datetime.now().weekday() < 5,
     )

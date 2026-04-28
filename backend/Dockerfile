@@ -13,7 +13,10 @@ RUN python -m spacy download en_core_web_sm 2>/dev/null || true
 
 COPY . .
 
+RUN adduser --disabled-password --no-create-home appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

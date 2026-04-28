@@ -129,7 +129,8 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
         """
         redis_client = await self._get_redis()
         if redis_client is None:
-            return True  # Allow if Redis unavailable
+            logger.error("Redis unavailable, rate limit failing closed to prevent DoS")
+            return False  # Fail closed
 
         try:
             current_time = int(time.time())
@@ -141,8 +142,8 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
             
             return count <= limit
         except Exception as e:
-            logger.warning(f"Rate limit check failed: {e}")
-            return True  # Allow on error
+            logger.error(f"Rate limit check failed: {e}")
+            return False  # Fail closed
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -155,6 +156,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: wss:;"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
         
         if settings.ENVIRONMENT == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"

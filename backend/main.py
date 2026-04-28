@@ -83,11 +83,14 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from backend.api.middleware import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Request ID middleware
@@ -126,8 +129,9 @@ async def health():
             status_code=status_code,
         )
     except Exception as e:
+        logger.error(f"Health check failed: {e}")
         return JSONResponse(
-            content={"status": "starting", "tier": 5, "error": str(e)},
+            content={"status": "starting", "tier": 5, "error": "Internal Error"},
             status_code=200,  # Bypass Docker assassinating the container
         )
 

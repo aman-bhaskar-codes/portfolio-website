@@ -221,8 +221,6 @@ services:
   # ───────────────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -244,8 +242,6 @@ services:
   # ───────────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
     environment:
@@ -259,8 +255,6 @@ services:
   # ───────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
@@ -298,9 +292,9 @@ services:
       - "3001:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portfolio_db
-      - NEXTAUTH_SECRET=langfuse-secret-change-me
+      - NEXTAUTH_SECRET=92bc7a9e3d4f128ab6c95d31b817e048f3219a
       - NEXTAUTH_URL=http://localhost:3001
-      - SALT=langfuse-salt-change-me
+      - SALT=47d9c1b3f8e52a9c7b1654e81d7f6c3a
     depends_on:
       postgres:
         condition: service_healthy
@@ -313,8 +307,6 @@ services:
   # ───────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -327,11 +319,9 @@ services:
   # ───────────────────────────────────────────────────
   grafana:
     image: grafana/grafana:latest
-    ports:
-      - "3002:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana_secure_admin_2026
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
@@ -346,9 +336,6 @@ services:
   # ───────────────────────────────────────────────────
   minio:
     image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
