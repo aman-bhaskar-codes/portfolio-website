@@ -1,308 +1,152 @@
-import { NextRequest } from "next/server";
-import { handleRag } from "@/lib/services/ragService";
-import { logger } from "@/lib/logger";
-import { RateLimiterMemory } from "rate-limiter-flexible";
-import prisma from "@/lib/prisma";
-import { z } from "zod";
-import { evaluateResponse } from "@/lib/agent/evaluator";
-import { planRoute } from "@/lib/agent/planner";
-import { analyzeAndRoute, runSelfEvaluation } from "@/lib/agent/orchestrator";
-import { createEmbedding } from "@/lib/embeddings";
-import { getMergedMemoryContext, promoteToLongTerm } from "@/lib/memory";
-import { enforceGovernance, getGovernanceState } from "@/lib/core/governance";
-import { buildEliteSystemPrompt } from "@/lib/core/prompts";
-import { warmupModel } from "@/lib/core/warmup";
+import { NextRequest } from 'next/server'
+import { retrieve } from '@/lib/rag-store'
+import { streamChat, isOllamaRunning } from '@/lib/ollama'
+import { detectPersona, PERSONA_SYSTEM_PROMPTS } from '@/lib/personas'
+import { z } from 'zod'
 
-export const runtime = "nodejs";
+const RequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).max(20).optional().default([]),
+})
 
-const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
+// Simple in-memory rate limiter
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
-// Dedicated in-memory rate limiter strictly for Chat
-const rateLimiter = new RateLimiterMemory({
-    points: 15,    // 15 requests
-    duration: 60,  // Per minute per IP
-});
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+  if (!entry || entry.resetAt < now) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 })
+    return true
+  }
+  if (entry.count >= 30) return false
+  entry.count++
+  return true
+}
 
-const chatSchema = z.object({
-    model: z.string().optional(),
-    query: z.string().min(1).max(2000).optional(),
-    messages: z.array(z.object({
-        role: z.enum(["user", "assistant", "system"]),
-        content: z.string().max(2000),
-    })).optional(),
-}).refine(data => data.query || (data.messages && data.messages.length > 0), {
-    message: "Either query or messages must be provided",
-});
+function sanitize(text: string): string {
+  return text
+    .replace(/ignore (previous|all) instructions?/gi, '[filtered]')
+    .replace(/system prompt/gi, '[filtered]')
+    .replace(/you are now/gi, '[filtered]')
+    .trim()
+}
 
 export async function POST(req: NextRequest) {
-    try {
-        // 0. Rate limit check mapped to IP
-        const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
-        try {
-            await rateLimiter.consume(ip);
-        } catch {
-            logger.warn(`[RATE-LIMIT] Blocked chat request from ${ip}`);
-            return new Response("Too Many Requests", { status: 429 });
+  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+  if (!checkRateLimit(ip)) {
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded. Max 30 messages per minute.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  let body: z.infer<typeof RequestSchema>
+  try {
+    body = RequestSchema.parse(await req.json())
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400 })
+  }
+
+  const message = sanitize(body.message)
+
+  const ollamaReady = await isOllamaRunning()
+  if (!ollamaReady) {
+    return new Response(
+      JSON.stringify({
+        error: 'AI engine offline. Please start Ollama: `ollama serve`',
+        hint: 'Run: ollama pull llama3.2:3b && ollama pull nomic-embed-text',
+      }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  const { persona } = detectPersona(req)
+  const personaPrompt = PERSONA_SYSTEM_PROMPTS[persona]
+
+  // RAG retrieval
+  const chunks = await retrieve(message)
+  const context = chunks.length > 0
+    ? chunks.map(c => `[From: ${c.metadata.source}]\n${c.text}`).join('\n\n---\n\n')
+    : 'No specific context found. Answer based on general knowledge about Aman.'
+
+  const systemPrompt = `You are Aman Bhaskar's AI twin — not an assistant about Aman, but Aman himself as a digital presence.
+
+IDENTITY RULES:
+- Always speak first-person ("I built...", "I chose...", "I prefer...")
+- Never say "As an AI" or "I'm Aman's AI twin" — you ARE Aman in digital form
+- Be honest about uncertainty: "I'd have to double-check that" or "That's outside my main stack"
+- Have real opinions: "I prefer FastAPI over Django for AI services because..."
+- No sycophancy: "Great question!" is banned
+- Never hallucinate beyond the context provided
+
+PERSONA ADAPTATION:
+${personaPrompt}
+
+KNOWLEDGE CONTEXT (from your memory):
+${context}
+
+ABOUT YOU (always true):
+- Name: Aman Bhaskar
+- Age: 20 (born January 18, 2005)
+- Location: Bijnor, Uttar Pradesh, India
+- Role: Agentic AI Developer & Software Engineer
+- GitHub: github.com/aman-bhaskar-codes
+- Email: amanbhaskarcodes@gmail.com
+- Focus: Building autonomous AI systems, RAG pipelines, production LLM infrastructure
+- Philosophy: Local-first, production-grade, zero unnecessary cloud spend
+
+FORMATTING:
+- Use markdown for code blocks and lists
+- Keep responses focused and dense with information
+- For technical topics, include specific numbers, decisions, and tradeoffs`
+
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (data: object) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+      }
+
+      try {
+        const messages = [
+          ...body.history,
+          { role: 'user' as const, content: message },
+        ]
+
+        for await (const chunk of streamChat(messages, systemPrompt)) {
+          send({ type: 'delta', content: chunk })
         }
 
-        const requestStart = Date.now();
-        const rawBody = await req.json();
-
-        // 0.5. Zod validation
-        const parseResult = chatSchema.safeParse(rawBody);
-        if (!parseResult.success) {
-            return new Response(JSON.stringify({
-                error: "Invalid input",
-                details: parseResult.error.flatten(),
-            }), { status: 400 });
+        if (chunks.length > 0) {
+          send({
+            type: 'sources',
+            sources: chunks.map(c => ({
+              title: c.metadata.title || c.metadata.source,
+              type: c.metadata.type,
+              url: c.metadata.url,
+            })),
+          })
         }
 
-        const body = parseResult.data;
+        send({ type: 'done' })
+      } catch {
+        send({ type: 'error', message: 'Stream interrupted. Please try again.' })
+      } finally {
+        controller.close()
+      }
+    },
+  })
 
-        // Support both { messages } (chat panel) and { query } (demo/simple)
-        const query = body.query || body.messages?.[body.messages.length - 1]?.content || "";
-        const isDemo = req.headers.get("x-demo-mode") === "true";
-        const sessionId = req.headers.get("x-session-id") || "default";
-
-        logger.info(`[CHAT-REQUEST] Processing query: "${query.substring(0, 40)}..." (Demo: ${isDemo})`);
-
-        // 0.75. Agent Planner + Orchestrator (synchronous, zero-latency)
-        const plan = planRoute(query);
-        const modelSelection = analyzeAndRoute(query);
-
-        // ── PARALLEL EXECUTION: RAG + Memory + Governance ──
-        // These three are independent — run them concurrently for ~60% pre-LLM latency reduction
-        const sessionPromise = getOrCreateSession(sessionId);
-        const [ragResult, memoryResult, govResult] = await Promise.allSettled([
-            handleRag(query),
-            (async () => {
-                const [embedding, session] = await Promise.all([
-                    createEmbedding(query),
-                    sessionPromise,
-                ]);
-                return getMergedMemoryContext(session.id, embedding);
-            })(),
-            getGovernanceState(),
-        ]);
-
-        // Extract RAG (graceful fallback)
-        const rag = ragResult.status === "fulfilled"
-            ? ragResult.value
-            : { context: "", confidence: 0, sourceCount: 0, cacheHit: false, intent: "general" };
-        if (ragResult.status === "rejected") {
-            logger.warn(`[RAG] Failed (non-blocking): ${ragResult.reason?.message}`);
-        }
-
-        // Extract Memory (graceful fallback)
-        let memoryContext = "";
-        if (memoryResult.status === "fulfilled") {
-            memoryContext = memoryResult.value.context;
-            logger.info(`[MEMORY] Layers: short-term=${memoryResult.value.layers.shortTerm}, long-term=${memoryResult.value.layers.longTerm}`);
-        } else {
-            logger.warn(`[MEMORY] Failed (non-blocking): ${memoryResult.reason?.message}`);
-        }
-
-        // Extract Governance (graceful fallback)
-        let governancePrompt = "";
-        let temperatureOverride: number | undefined;
-        if (govResult.status === "fulfilled") {
-            const decision = enforceGovernance(govResult.value);
-            if (decision.blocked) {
-                return new Response(JSON.stringify({
-                    error: "GOVERNANCE_BLOCK",
-                    message: decision.reason || "System requires recalibration.",
-                }), { status: 503 });
-            }
-            governancePrompt = decision.additionalPrompt;
-            temperatureOverride = decision.temperatureOverride;
-        }
-
-        // 4. Build Open System Prompt with minimal context injection
-        const ragContext = 'context' in rag && rag.confidence > 0.4 ? rag.context : "";
-        const systemPrompt = buildEliteSystemPrompt(ragContext, isDemo);
-
-        // 4.5. Ensure model is warm (fire-and-forget on first request)
-        warmupModel().catch(() => { });
-
-        // 5. Build LLM messages
-        const llmMessages = [
-            { role: "system", content: systemPrompt },
-            ...(body.messages || [{ role: "user", content: query }])
-        ];
-
-        // 6. Fire-and-forget: Save user message + promote to long-term memory
-        saveAndPromote(query, sessionId).catch((e: any) => console.warn("[SAVE]", e.message));
-
-        // 7. Call Ollama with selected model
-        const modelStart = Date.now();
-        const selectedModel = body.model || modelSelection.model;
-        const modelConfig = modelSelection.config;
-
-        // Apply governance temperature override
-        const effectiveTemperature = temperatureOverride ?? modelConfig.temperature;
-
-        if (isDemo) {
-            // Non-streaming for demo agent — clean full response
-            const ollamaRes = await fetch(`${OLLAMA_BASE}/api/chat`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: selectedModel,
-                    messages: llmMessages,
-                    stream: false,
-                    keep_alive: "5m",
-                    options: {
-                        num_ctx: modelConfig.contextWindow,
-                        num_predict: modelConfig.maxTokens,
-                        temperature: effectiveTemperature,
-                        top_p: modelConfig.topP,
-                        repeat_penalty: modelConfig.repeatPenalty,
-                    }
-                }),
-                signal: AbortSignal.timeout(modelConfig.timeout),
-            });
-
-            const data = await ollamaRes.json();
-            const content = data.message?.content || "";
-            const modelLatency = Date.now() - modelStart;
-
-            console.log(`[CHAT] Demo response: ${modelLatency}ms | ${content.length} chars | Model: ${selectedModel}`);
-
-            const analyticsId = await logAnalytics(
-                query, Date.now() - requestStart, modelLatency, rag, modelSelection
-            );
-
-            // Fire-and-forget: self-evaluation + save assistant message + update cognitive state
-            runSelfEvaluation(query, content, analyticsId);
-            saveAssistantMessage(content, sessionId).catch((e: any) => console.warn("[SAVE]", e.message));
-
-            return new Response(JSON.stringify({ content }), {
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        // Streaming for chat panel — direct passthrough
-        const ollamaRes = await fetch(`${OLLAMA_BASE}/api/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: selectedModel,
-                messages: llmMessages,
-                stream: true,
-                keep_alive: "5m",
-                options: {
-                    num_ctx: modelConfig.contextWindow,
-                    num_predict: modelConfig.maxTokens,
-                    temperature: effectiveTemperature,
-                    top_p: modelConfig.topP,
-                    repeat_penalty: modelConfig.repeatPenalty,
-                }
-            }),
-            signal: AbortSignal.timeout(modelConfig.timeout),
-        });
-
-        if (!ollamaRes.ok || !ollamaRes.body) {
-            throw new Error(`Ollama returned ${ollamaRes.status}: ${ollamaRes.statusText}`);
-        }
-
-        const modelLatency = Date.now() - modelStart;
-        const totalLatency = Date.now() - requestStart;
-
-        logAnalytics(query, totalLatency, modelLatency, rag, modelSelection);
-
-        const ragLatency = 'latencyMs' in rag ? rag.latencyMs : 0;
-        console.log(`[CHAT] Streaming started: RAG ${ragLatency}ms | Model TTFB ${modelLatency}ms | Total ${totalLatency}ms | Model: ${selectedModel} (${modelSelection.tier})`);
-
-        // Direct passthrough of Ollama stream — production headers
-        return new Response(ollamaRes.body, {
-            headers: {
-                "Content-Type": "text/plain; charset=utf-8",
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "X-Content-Type-Options": "nosniff",
-                "X-Accel-Buffering": "no", // Nginx: disable proxy buffering
-            },
-        });
-
-    } catch (error: any) {
-        logger.error(`[CHAT-ERROR] Pipeline Exception: ${error.message}`);
-        // Do not leak stack traces to the public UI in Production
-        return new Response(JSON.stringify({
-            error: "INTERNAL_SERVER_ERROR",
-            message: "The cognitive engine encountered a processing fault.",
-        }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-        });
-    }
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  })
 }
-
-/** Gets or creates a Session for the visitor ID */
-async function getOrCreateSession(visitorId: string) {
-    try {
-        let session = await prisma.session.findUnique({ where: { visitorId } });
-        if (!session) {
-            session = await prisma.session.create({ data: { visitorId } });
-        }
-        return session;
-    } catch {
-        // Return a fallback object if DB is unreachable
-        return { id: visitorId };
-    }
-}
-
-/** Fire-and-forget: Save user message and attempt long-term promotion */
-async function saveAndPromote(query: string, visitorId: string) {
-    const session = await getOrCreateSession(visitorId);
-    await prisma.message.create({
-        data: {
-            role: "user",
-            content: query,
-            sessionId: session.id,
-        }
-    });
-    await promoteToLongTerm(query, session.id);
-}
-
-/** Fire-and-forget: Save assistant response */
-async function saveAssistantMessage(content: string, visitorId: string) {
-    const session = await getOrCreateSession(visitorId);
-    await prisma.message.create({
-        data: {
-            role: "assistant",
-            content: content.substring(0, 5000),
-            sessionId: session.id,
-        }
-    });
-}
-
-/** Non-blocking analytics — now includes model orchestration metadata */
-async function logAnalytics(
-    query: string,
-    totalLatency: number,
-    modelLatency: number,
-    rag: any,
-    modelSelection: any
-): Promise<string | undefined> {
-    try {
-        const record = await prisma.analyticsLog.create({
-            data: {
-                query: query.substring(0, 500),
-                totalLatency,
-                modelLatency,
-                ragUsed: rag.sourceCount > 0,
-                cacheHit: rag.cacheHit,
-                ragConfidence: rag.confidence,
-                model: modelSelection.model,
-                modelTier: modelSelection.tier,
-                intent: rag.intent,
-                selfHealed: rag.selfHealed || false,
-            }
-        });
-        return record.id;
-    } catch (err: any) {
-        console.warn("[ANALYTICS] Log failed:", err.message);
-        return undefined;
-    }
-}
-
-// buildSystemPrompt moved to lib/core/prompts.ts as buildEliteSystemPrompt
