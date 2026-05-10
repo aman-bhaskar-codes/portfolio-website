@@ -1,27 +1,51 @@
-# Availability & Contact
+# Aman Bhaskar — Availability & Status
+# RAG Corpus: /data/owner/availability.md
+# Update this file whenever your status changes
 
-## Current Status
-Open to senior AI/ML engineering roles and technical co-founder opportunities.
+---
 
-## Preferences
-- **Role Focus**: AI/ML Engineering, Agent Architecture, Backend/Infrastructure
-- **Work Style**: Remote-first, async communication, deep work blocks
-- **Company Stage**: Series A+ startups or established tech companies
-- **Interesting Domains**: AI infrastructure, developer tools, knowledge systems, autonomous agents
+## Current Status (May 2026)
 
-## What Excites Me
-- Multi-agent orchestration at scale
-- Building products where the AI is the product (not a bolted-on chatbot)
-- Companies that ship fast and iterate on real user feedback
-- Teams that value engineering craft alongside business impact
+- **Actively building:** Agentic Portfolio (ANTIGRAVITY OS)
+- **Learning:** DSPy for automated prompt optimization, ColBERT for late-interaction reranking
+- **Location:** Bijnor, Uttar Pradesh, India (UTC+5:30)
 
-## Deal Breakers
-- No fully remote options
-- "AI wrapper" companies with no real engineering depth
-- Environments where shipping speed comes at the cost of all quality
+---
 
-## Contact
-- **Email**: [your-email]
-- **LinkedIn**: [your-linkedin-url]
-- **GitHub**: https://github.com/aman-bhaskar-codes
-- **Preferred**: LinkedIn DM or email. I respond within 24h.
+## Availability
+
+- **Open to:** Remote work, full-time roles, project-based freelance work
+- **Available for:** AI engineering opportunities, freelance LLM projects, collaboration
+- **Response time:** Usually within 24 hours via email
+
+---
+
+## What I'm Looking For
+
+I want to work on hard AI infrastructure problems with a team that takes production quality seriously.
+
+**Ideal roles:**
+- AI/ML Engineer
+- LLM Infrastructure Engineer
+- RAG Pipeline Engineer
+- Backend Engineer (AI-focused)
+
+**What excites me:**
+- Retrieval systems and search quality
+- Agent orchestration and multi-agent systems
+- Evaluation pipelines and AI reliability
+- The infrastructure that makes AI actually work at scale
+
+**What I'm NOT interested in:**
+- Wrapping GPT-4 in a chat interface
+- Pure frontend roles without backend/AI involvement
+- Roles that don't involve building real systems
+
+---
+
+## How to Reach Me
+
+- **Email:** amanbhaskarcodes@gmail.com (preferred)
+- **LinkedIn:** linkedin.com/in/aman-bhaskar-18jan2005/
+- **GitHub:** github.com/aman-bhaskar-codes
+- **Twitter/X:** x.com/_aman_bhaskar

@@ -1,13 +1,15 @@
 # ═══════════════════════════════════════════════════════════
-# 🧠 AGENTIC PORTFOLIO SYSTEM — Docker Compose (Full Stack)
+# 🧠 AGENTIC PORTFOLIO SYSTEM — Docker Compose (Simplified)
 # ═══════════════════════════════════════════════════════════
+# 9 services only — the load-bearing minimum.
+# Add observability (prometheus/grafana) AFTER core AI works.
+#
 # Usage:
 #   docker compose up -d              # Start everything
 #   docker compose logs -f api        # Stream API logs
 #   docker compose down -v            # Stop + remove volumes
 #
 # IMPORTANT: Copy .env.genesis → .env and fill in secrets
-#   before running. All credentials must be in .env.
 # ═══════════════════════════════════════════════════════════
 
 # ── Shared environment variables (YAML anchor) ──
@@ -16,9 +18,11 @@ x-common-env: &common-env
   SYNC_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/portfolio_db
   OLLAMA_URL: http://host.docker.internal:11434
   REDIS_URL: redis://redis_cache:6379/0
+  REDIS_PERSISTENT_URL: redis://redis_persistent:6379/0
   QDRANT_URL: http://qdrant:6333
-  CELERY_BROKER_URL: redis://redis_persistent:6379/0
-  CELERY_RESULT_BACKEND: redis://redis_persistent:6379/1
+  CELERY_BROKER_URL: redis://redis_persistent:6379/1
+  CELERY_RESULT_BACKEND: redis://redis_persistent:6379/2
+  GITHUB_TOKEN: ${GITHUB_TOKEN:-}
   ENVIRONMENT: development
   LOG_LEVEL: INFO
 
@@ -61,7 +65,6 @@ services:
     volumes:
       - ./backend:/app/backend
       - ./data:/app/data
-      - analytics_data:/app/data/analytics
     environment:
       <<: *common-env
       # ── Observability ──
@@ -69,85 +72,19 @@ services:
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
 
-      # ── Security Vault ──
+      # ── Security ──
       VAULT_ENCRYPTION_KEY: ${VAULT_ENCRYPTION_KEY:-}
-
-      # ── Circuit Breaker ──
-      CB_FAILURE_THRESHOLD: "5"
-      CB_TIMEOUT_SECONDS: "60"
-      CB_SUCCESS_THRESHOLD: "2"
 
       # ── LLM Model Routing ──
       LLM_MODEL_HEAVY: phi4-mini
       LLM_MODEL_MEDIUM: llama3.2:3b
       LLM_MODEL_LIGHT: qwen2.5:3b
-      LLM_DAILY_TOKEN_LIMIT_HEAVY: "500000"
-      LLM_DAILY_TOKEN_LIMIT_MEDIUM: "1000000"
-      LLM_DAILY_TOKEN_LIMIT_LIGHT: "2000000"
 
-      # ── SSE / Streaming ──
-      MAX_SSE_CONNECTIONS: "500"
-      SSE_MAX_LIFETIME_SECONDS: "300"
-      SSE_IDLE_TIMEOUT_SECONDS: "60"
-
-      # ── Load Shedding ──
-      LOAD_SHED_THRESHOLD_1: "50"
-      LOAD_SHED_THRESHOLD_2: "100"
-      LOAD_SHED_THRESHOLD_3: "200"
-      LOAD_SHED_THRESHOLD_4: "500"
-
-      # ── Security ──
-      SECURITY_RISK_SCRUTINY: "30"
-      SECURITY_RISK_CHALLENGE: "50"
-      SECURITY_RISK_DELAY: "75"
-      SECURITY_RISK_SOFT_BAN: "100"
-      SECURITY_SOFT_BAN_HOURS: "48"
-
-      # ── Feature Flags ──
+      # ── Feature Flags (core only) ──
       FEATURE_CLI_MODE: "true"
       FEATURE_BUILD_WITH_ME: "true"
-      FEATURE_STUMP_CHALLENGE: "true"
-      FEATURE_TIME_MACHINE: "true"
-      FEATURE_LIVE_BUILD_WIDGET: "true"
       FEATURE_VOICE_MODE: "true"
-      FEATURE_DEBATE_MODE: "true"
       FEATURE_3D_CONSTELLATION: "true"
-      FEATURE_WEB_RESEARCH: "true"
-      FEATURE_OPPORTUNITY_AGENT: "false"
-
-      # ── V3: Vision + Retrieval ──
-      OLLAMA_VISION_MODEL: llava-phi3
-      COLBERT_MODEL: colbert-ir/colbertv2.0
-      CROSS_ENCODER_MODEL: cross-encoder/ms-marco-MiniLM-L-6-v2
-      DSPY_ENABLED: "true"
-      DSPY_IMPROVEMENT_THRESHOLD: "0.05"
-      RAGAS_ENABLED: "true"
-      RAGAS_FAITHFULNESS_THRESHOLD: "0.80"
-      DUCKDB_PATH: data/analytics/antigravity.duckdb
-
-      # ── MinIO (no default fallbacks — fail if not set) ──
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-
-      # ── ntfy ──
-      NTFY_BASE_URL: http://ntfy:80
-      NTFY_TOPIC: portfolio-alerts
-      NTFY_ENABLED: "true"
-
-      # ── Umami ──
-      UMAMI_HOST: http://umami:3000
-      UMAMI_TRACKING_ID: ${UMAMI_TRACKING_ID:-}
-
-      # ── V3 Feature Flags ──
-      FEATURE_COLBERT_RETRIEVAL: "true"
-      FEATURE_VISION_PIPELINE: "true"
-      FEATURE_DSPY_OPTIMIZATION: "true"
-      FEATURE_RAGAS_EVALUATION: "true"
-      FEATURE_DUCKDB_ANALYTICS: "true"
-      FEATURE_MINIO_STORAGE: "true"
-      FEATURE_NTFY_NOTIFICATIONS: "true"
-      FEATURE_PWA: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -164,7 +101,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 20s
     restart: unless-stopped
     networks:
       - internal
@@ -216,9 +153,9 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=portfolio_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: portfolio_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/db/init_schema.sql:/docker-entrypoint-initdb.d/01-init.sql
@@ -235,11 +172,9 @@ services:
   # 🗄️ Qdrant Vector Database
   # ───────────────────────────────────────────────────
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.9.0
     volumes:
       - qdrant_data:/qdrant/storage
-    environment:
-      - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
       interval: 10s
@@ -255,7 +190,7 @@ services:
   # ───────────────────────────────────────────────────
   redis_cache:
     image: redis:7-alpine
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -299,99 +234,15 @@ services:
       - internal
 
   # ───────────────────────────────────────────────────
-  # 📊 Langfuse (LLM Observability) — pinned version
+  # 📊 Langfuse (LLM Observability) — critical for debug
   # ───────────────────────────────────────────────────
   langfuse:
     image: langfuse/langfuse:2
-    # No external ports — access via Nginx proxy only
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/portfolio_db
-      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=http://localhost:3001
-      - SALT=${LANGFUSE_SALT}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - internal
-
-  # ───────────────────────────────────────────────────
-  # 📈 Prometheus (Metrics Collection)
-  # ───────────────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    restart: unless-stopped
-    networks:
-      - internal
-
-  # ───────────────────────────────────────────────────
-  # 📊 Grafana (Dashboards)
-  # ───────────────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3002:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
-    restart: unless-stopped
-    networks:
-      - internal
-
-  # ───────────────────────────────────────────────────
-  # 📦 MinIO (Self-Hosted S3 Storage) — V3
-  # ───────────────────────────────────────────────────
-  minio:
-    image: minio/minio:latest
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - internal
-
-  # ───────────────────────────────────────────────────
-  # 🔔 ntfy (Push Notifications) — V3
-  # ───────────────────────────────────────────────────
-  ntfy:
-    image: binwiederhier/ntfy:latest
-    # No external ports — internal only
-    command: serve
-    volumes:
-      - ntfy_data:/var/lib/ntfy
-    restart: unless-stopped
-    networks:
-      - internal
-
-  # ───────────────────────────────────────────────────
-  # 📊 Umami (Privacy-First Analytics) — V3
-  # ───────────────────────────────────────────────────
-  umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    # No external ports — internal only
-    environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/portfolio_db
-      - DATABASE_TYPE=postgresql
-      - APP_SECRET=${UMAMI_APP_SECRET}
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/portfolio_db
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      NEXTAUTH_URL: http://localhost:3001
+      SALT: ${LANGFUSE_SALT}
     depends_on:
       postgres:
         condition: service_healthy
@@ -406,11 +257,6 @@ volumes:
   postgres_data:
   qdrant_data:
   redis_persistent_data:
-  prometheus_data:
-  grafana_data:
-  minio_data:
-  ntfy_data:
-  analytics_data:
 
 # ───────────────────────────────────────────────────
 # 🔒 Internal Network
