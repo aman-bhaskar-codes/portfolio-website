@@ -32,7 +32,7 @@
   <img src="https://img.shields.io/badge/ColBERT-RAGatouille-EC4899?style=for-the-badge"/>
   <img src="https://img.shields.io/badge/Ragas-Auto--Eval-10B981?style=for-the-badge"/>
   <img src="https://img.shields.io/badge/LangFuse-LLM%20Tracing-F59E0B?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Status-Production%20Ready-22C55E?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Status-Active%20Development-F59E0B?style=for-the-badge"/>
 </p>
 
 <!-- SOCIAL LINKS -->
@@ -115,6 +115,20 @@
 | 20 | [📜 The 10 Principles](#-the-10-principles-of-agentic-portfolio-website) |
 
 </div>
+
+<br/>
+
+## 🚦 Current Status
+
+| Component                     | Status         | Description                                       |
+|:------------------------------|:---------------|:--------------------------------------------------|
+| **Core Architecture**         | ✅ Working      | Next.js frontend, FastAPI backend, Docker Compose |
+| **Basic Chat (Ollama → LLM)** | ✅ Working      | Streams responses via SSE                         |
+| **Vector DB (Qdrant)**        | ✅ Working      | Infrastructure running and health-checked         |
+| **GitHub Sync (Celery)**      | 🔄 In Progress  | Webhook scaffolding built, tasks pending          |
+| **Visitor Persona Detection** | 🔄 In Progress  | Architecture designed, pending implementation     |
+| **ColBERT Reranking**         | 📋 Planned      | Needs `.ragatouille` index initialization         |
+| **DSPy Optimization**         | 📋 Planned      | Feature flag added, implementation pending        |
 
 <br/>
 

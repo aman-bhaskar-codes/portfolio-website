@@ -11,10 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN python -m spacy download en_core_web_sm 2>/dev/null || true
 
-COPY . .
+# Copy only necessary code (not .env, .git, node_modules)
+COPY backend/ ./backend/
 
+# Non-root user for security
 RUN adduser --disabled-password --no-create-home appuser
-RUN chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000

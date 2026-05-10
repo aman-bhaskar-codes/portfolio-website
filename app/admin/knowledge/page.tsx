@@ -10,8 +10,8 @@ import {
     useEdgesState,
     type Node,
     type Edge,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 
 export default function KnowledgeGraphPage() {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
