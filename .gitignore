@@ -16,11 +16,11 @@ dist/
 *.tsbuildinfo
 
 # ═══════════════════════════════════════════════════
-# Environment & Secrets
+# Environment & Secrets (NEVER commit these)
 # ═══════════════════════════════════════════════════
 .env
 .env.*
-!.env.genesis
+!.env.example
 .env.local
 .env.production
 
@@ -74,8 +74,9 @@ coverage/
 .nyc_output/
 
 # ═══════════════════════════════════════════════════
-# Docker
+# Generated Data (rebuild with scripts/ingest.ts)
 # ═══════════════════════════════════════════════════
+data/vectors.json
 data/analytics/
 data/*.duckdb
 
