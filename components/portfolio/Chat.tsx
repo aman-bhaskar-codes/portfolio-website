@@ -127,66 +127,66 @@ export default function Chat() {
   }
 
   return (
-    <section id="chat" className="py-24 px-6 bg-bg-secondary/30">
+    <section id="chat" className="sec bg-black border-t border-white/10">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <div className="text-accent-primary font-mono text-sm mb-4">04. ai twin</div>
+          <div className="sec-label mb-4">04. ai twin</div>
           <h2
-            className="text-4xl font-bold text-text-primary"
-            style={{ fontFamily: 'var(--font-display)' }}
+            className="sec-title"
+            data-t="Ask me anything."
           >
-            Ask me anything.
+            Ask me<br/>anything.
           </h2>
-          <p className="text-text-secondary mt-3">
+          <p className="text-white/60 mt-3 font-mono text-sm max-w-xl">
             Powered by a local RAG pipeline — llama3.2:3b + nomic-embed-text + my actual GitHub knowledge.
             Runs 100% locally. No API keys.
           </p>
           {ollamaDown && (
-            <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-mono">
+            <div className="mt-3 p-3 rounded-[2px] bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-mono">
               ⚠ Ollama offline — run: <code className="text-red-300">ollama serve</code> then reload
             </div>
           )}
         </div>
 
-        <div className="bg-bg-card rounded-2xl border border-bg-border overflow-hidden">
+        <div className="bg-black rounded-[2px] border border-white/10 overflow-hidden relative z-10">
           {/* Status bar */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-bg-border">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${ollamaDown ? 'bg-red-400' : 'bg-accent-secondary animate-pulse'}`} />
-              <span className="font-mono text-xs text-text-muted">
+              <div className={`w-2 h-2 rounded-full ${ollamaDown ? 'bg-red-400' : 'bg-white animate-pulse'}`} />
+              <span className="font-mono text-xs text-white/40">
                 {ollamaDown ? 'offline' : 'llama3.2:3b · nomic-embed-text'}
               </span>
             </div>
-            <span className="font-mono text-xs text-text-muted">aman&apos;s digital twin</span>
+            <span className="font-mono text-xs text-white/40">aman's digital twin</span>
           </div>
 
           {/* Messages */}
-          <div className="h-96 overflow-y-auto p-4 space-y-4">
+          <div className="h-96 overflow-y-auto p-4 space-y-4 custom-scrollbar">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`max-w-[85%] rounded-xl px-4 py-3 ${
+                  className={`max-w-[85%] rounded-[2px] px-4 py-3 ${
                     msg.role === 'user'
-                      ? 'bg-accent-primary/15 border border-accent-primary/25 text-text-primary'
-                      : 'bg-bg-secondary border border-bg-border text-text-secondary'
+                      ? 'bg-white/10 border border-white/20 text-white'
+                      : 'bg-black border border-white/10 text-white/80'
                   }`}
                 >
                   {msg.role === 'assistant' ? (
-                    <div className="chat-content text-sm">
+                    <div className="chat-content text-sm prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-white/5 prose-pre:border-white/10">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {msg.content + (msg.streaming ? '▊' : '')}
                       </ReactMarkdown>
                       {msg.sources && msg.sources.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-bg-border/50">
-                          <div className="text-xs font-mono text-text-muted mb-1">sources:</div>
-                          <div className="flex flex-wrap gap-1">
+                        <div className="mt-3 pt-3 border-t border-white/10">
+                          <div className="text-xs font-mono text-white/40 mb-2">sources:</div>
+                          <div className="flex flex-wrap gap-2">
                             {msg.sources.map((s, si) => (
                               <a
                                 key={si}
                                 href={s.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-1.5 py-0.5 text-[10px] font-mono bg-bg-border/50 text-accent-primary rounded hover:bg-accent-primary/10 transition-colors"
+                                className="citation-chip"
                               >
                                 {s.title}
                               </a>
@@ -196,7 +196,7 @@ export default function Chat() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="text-sm font-mono">{msg.content}</p>
                   )}
                 </div>
               </div>
@@ -207,13 +207,13 @@ export default function Chat() {
           {/* Suggestions */}
           {messages.length <= 1 && (
             <div className="px-4 pb-3">
-              <div className="text-xs font-mono text-text-muted mb-2">suggested questions:</div>
+              <div className="text-xs font-mono text-white/40 mb-2">suggested questions:</div>
               <div className="flex flex-wrap gap-2">
                 {SUGGESTIONS.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => sendMessage(s)}
-                    className="px-3 py-1.5 text-xs font-mono bg-bg-border/40 text-text-secondary hover:text-text-primary hover:bg-accent-primary/10 rounded-lg border border-bg-border/40 hover:border-accent-primary/30 transition-all"
+                    className="px-3 py-1.5 text-[11px] font-mono bg-white/5 text-white/60 hover:text-white hover:bg-white/10 rounded-[2px] border border-white/10 transition-all text-left"
                   >
                     {s}
                   </button>
@@ -223,7 +223,7 @@ export default function Chat() {
           )}
 
           {/* Input */}
-          <div className="border-t border-bg-border p-4">
+          <div className="border-t border-white/10 p-4">
             <div className="flex gap-3 items-end">
               <textarea
                 ref={inputRef}
@@ -232,7 +232,7 @@ export default function Chat() {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about my projects, stack, availability..."
                 rows={1}
-                className="flex-1 bg-bg-secondary border border-bg-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-primary/50 transition-colors"
+                className="flex-1 bg-black border border-white/10 rounded-[2px] px-4 py-3 text-sm text-white placeholder-white/40 resize-none focus:outline-none focus:border-white/30 transition-colors font-mono"
                 style={{ minHeight: '48px', maxHeight: '120px' }}
                 disabled={loading}
                 onInput={e => {
@@ -244,7 +244,7 @@ export default function Chat() {
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || loading}
-                className="p-3 bg-accent-primary hover:bg-accent-primary/80 disabled:bg-accent-primary/20 disabled:text-text-muted text-white rounded-xl transition-all"
+                className="p-3 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:text-white/20 text-white rounded-[2px] transition-all border border-white/10"
               >
                 {loading ? (
                   <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -258,8 +258,9 @@ export default function Chat() {
                 )}
               </button>
             </div>
-            <div className="mt-2 text-xs font-mono text-text-muted">
-              Enter to send · Shift+Enter for newline · 30 msg/min limit
+            <div className="mt-3 text-xs font-mono text-white/30 flex justify-between">
+              <span>Enter to send · Shift+Enter for newline</span>
+              <span>30 msg/min limit</span>
             </div>
           </div>
         </div>

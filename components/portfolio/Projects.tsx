@@ -1,71 +1,20 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { ScrollReveal } from './ScrollReveal'
+import type { GitHubRepo } from '@/lib/github-agent'
+import { FALLBACK_REPOS } from '@/lib/github-agent'
 
-interface Repo {
-  name: string
-  description: string | null
-  url: string
-  stars: number
-  forks: number
-  language: string | null
-  topics: string[]
-  updatedAt: string
-}
-
-const LANG_COLORS: Record<string, string> = {
-  Python:     '#3B82F6',
-  TypeScript: '#10B981',
-  PLpgSQL:    '#F59E0B',
-  GDScript:   '#8B5CF6',
-  JavaScript: '#EAB308',
-}
-
-const FEATURED = ['rag-research-assistant', 'llm-engineering-lab', 'sql-data-systems-projects', 'portfolio-website']
-
-const FALLBACK_REPOS: Repo[] = [
-  {
-    name: 'rag-research-assistant',
-    description: 'Production-grade RAG Research Assistant — FastAPI, pgvector, Redis, Ollama + Gemini. Hybrid retrieval with HyDE, BM25, RRF, and cross-encoder reranking.',
-    url: 'https://github.com/aman-bhaskar-codes/rag-research-assistant',
-    stars: 1, forks: 0, language: 'Python',
-    topics: ['rag', 'fastapi', 'pgvector', 'ollama', 'gemini', 'redis'],
-    updatedAt: '2025-01-01',
-  },
-  {
-    name: 'llm-engineering-lab',
-    description: 'Structured Extraction Intelligence Engine — unstructured docs to typed JSON. Multi-tier LLM routing, SSE streaming, ARQ workers.',
-    url: 'https://github.com/aman-bhaskar-codes/llm-engineering-lab',
-    stars: 2, forks: 0, language: 'Python',
-    topics: ['llm', 'fastapi', 'pydantic', 'ollama', 'extraction'],
-    updatedAt: '2025-01-01',
-  },
-  {
-    name: 'sql-data-systems-projects',
-    description: 'PostgreSQL engineering — university data systems, analytics queries, large-scale dataset simulations in PL/pgSQL.',
-    url: 'https://github.com/aman-bhaskar-codes/sql-data-systems-projects',
-    stars: 2, forks: 0, language: 'PLpgSQL',
-    topics: ['postgresql', 'plpgsql', 'database-engineering'],
-    updatedAt: '2025-01-01',
-  },
-  {
-    name: 'portfolio-website',
-    description: 'Agentic portfolio — RAG-powered AI twin, visitor intelligence, GitHub knowledge sync. Next.js + Ollama.',
-    url: 'https://github.com/aman-bhaskar-codes/portfolio-website',
-    stars: 0, forks: 0, language: 'TypeScript',
-    topics: ['portfolio', 'ai', 'rag', 'nextjs', 'ollama'],
-    updatedAt: '2025-01-01',
-  },
-]
+const FEATURED = ['rag-research-assistant', 'llm-engineering-lab', 'sql-data-systems-projects', 'portfolio-website', 'digital-twin-engine', 'visitor-intelligence']
 
 export default function Projects() {
-  const [repos, setRepos] = useState<Repo[]>([])
-  const [loading, setLoading] = useState(true)
+  const [repos, setRepos] = useState<GitHubRepo[]>([])
+  const [filter, setFilter] = useState<'all' | 'ai' | 'fs' | 'sys'>('all')
 
   useEffect(() => {
     fetch('/api/github')
       .then(r => r.json())
       .then(data => {
-        const list: Repo[] = data.repos || FALLBACK_REPOS
+        const list: GitHubRepo[] = data.repos || FALLBACK_REPOS
         const sorted = [...list].sort((a, b) => {
           const aFeat = FEATURED.indexOf(a.name)
           const bFeat = FEATURED.indexOf(b.name)
@@ -77,98 +26,94 @@ export default function Projects() {
         setRepos(sorted)
       })
       .catch(() => setRepos(FALLBACK_REPOS))
-      .finally(() => setLoading(false))
   }, [])
 
+  const filteredRepos = repos.filter(repo => {
+    if (filter === 'all') return true;
+    return repo.category === filter;
+  });
+
   return (
-    <section id="projects" className="py-24 px-6 bg-bg-secondary/50">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-12">
-          <div className="text-accent-primary font-mono text-sm mb-4">02. projects</div>
-          <h2
-            className="text-4xl font-bold text-text-primary"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Things I&apos;ve shipped.
+    <section id="projects" className="sec">
+      <ScrollReveal className="flex justify-between items-end mb-[3.5rem]">
+        <div>
+          <p className="sec-label">Featured Works</p>
+          <h2 className="sec-title" data-t="Featured Projects">
+            Featured<br />Projects
           </h2>
-          <p className="text-text-secondary mt-3 max-w-xl">
-            All projects live on GitHub. All built to solve real problems, not just to learn a framework.
-          </p>
         </div>
+        <a 
+          href="https://github.com/aman-bhaskar-codes" 
+          target="_blank" 
+          rel="noreferrer"
+          className="text-white/30 no-underline text-[0.78rem] font-semibold tracking-[0.12em] uppercase border-b border-white/15 pb-[2px] hover:text-white hover:border-white transition-all"
+        >
+          All projects →
+        </a>
+      </ScrollReveal>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-52 bg-bg-card rounded-xl border border-bg-border animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {repos.map(repo => (
-              <a
-                key={repo.name}
-                href={repo.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group block p-6 bg-bg-card rounded-xl border border-bg-border hover:border-accent-primary/40 hover:bg-bg-card/80 transition-all duration-300"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    <span className="font-mono text-sm text-accent-primary font-medium group-hover:underline">
-                      {repo.name}
-                    </span>
-                    {FEATURED.includes(repo.name) && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-mono bg-accent-primary/10 text-accent-primary rounded">
-                        featured
-                      </span>
-                    )}
-                  </div>
-                  <svg className="w-4 h-4 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </div>
-
-                <p className="text-text-secondary text-sm leading-relaxed mb-4 line-clamp-3">
-                  {repo.description || 'No description available.'}
-                </p>
-
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {repo.topics.slice(0, 4).map(topic => (
-                    <span key={topic} className="px-2 py-0.5 text-[10px] font-mono bg-bg-border/50 text-text-muted rounded">
-                      {topic}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-4 text-xs text-text-muted font-mono">
-                  {repo.language && (
-                    <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full" style={{ background: LANG_COLORS[repo.language] || '#6366F1' }} />
-                      {repo.language}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1">★ {repo.stars}</span>
-                  <span className="flex items-center gap-1">⑂ {repo.forks}</span>
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-8 text-center">
-          <a
-            href="https://github.com/aman-bhaskar-codes"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-mono text-text-secondary hover:text-accent-primary transition-colors"
+      <ScrollReveal className="flex gap-[0.4rem] mb-[2.8rem] flex-wrap">
+        {[
+          { id: 'all', label: 'All' },
+          { id: 'ai', label: 'AI / Agentic' },
+          { id: 'fs', label: 'Full-Stack' },
+          { id: 'sys', label: 'Systems' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setFilter(tab.id as any)}
+            className={`
+              bg-transparent border border-white/10 text-white/35 px-[1.4rem] py-[0.45rem]
+              font-['Syne'] text-[0.72rem] font-semibold tracking-[0.12em] uppercase rounded-[2px]
+              transition-all duration-250 hover:bg-white hover:border-white hover:text-black
+              ${filter === tab.id ? 'bg-white border-white text-black' : ''}
+            `}
           >
-            View all on GitHub →
+            {tab.label}
+          </button>
+        ))}
+      </ScrollReveal>
+
+      <ScrollReveal className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-white/5">
+        {filteredRepos.slice(0, 6).map((repo, i) => (
+          <a
+            key={repo.name}
+            href={repo.url}
+            target="_blank"
+            rel="noreferrer"
+            className="group relative overflow-hidden bg-black p-[2.8rem_2.4rem] border border-white/5 transition-colors duration-350 hover:bg-white/5 block"
+          >
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-[110%] transition-transform duration-500 ease-out group-hover:translate-x-[110%]" />
+            
+            <p className="text-[0.65rem] tracking-[0.2em] text-white/20 mb-[2.2rem]">
+              {(i + 1).toString().padStart(2, '0')}
+            </p>
+            <span className="inline-block text-[0.6rem] tracking-[0.15em] uppercase text-white/30 border border-white/10 px-[0.65rem] py-[0.18rem] rounded-[2px] mb-[1.4rem]">
+              {repo.category === 'ai' ? 'AI / ML' : repo.category === 'fs' ? 'Full-Stack' : 'Systems'}
+            </span>
+            
+            <h3 className="font-['Bebas_Neue'] text-[2.6rem] tracking-[0.02em] leading-none mb-[0.9rem] text-white">
+              {repo.name.replace(/-/g, ' ')}
+            </h3>
+            
+            <p className="text-[0.83rem] leading-[1.75] text-white/40 mb-[1.8rem] line-clamp-3">
+              {repo.description || 'No description provided.'}
+            </p>
+            
+            <div className="flex flex-wrap gap-[0.5rem]">
+              {repo.topics.slice(0, 4).map(topic => (
+                <span key={topic} className="text-[0.62rem] tracking-[0.1em] text-white/30 border-b border-white/10 pb-[1px]">
+                  {topic}
+                </span>
+              ))}
+            </div>
+            
+            <i className="absolute bottom-[2.4rem] right-[2.4rem] text-[1.4rem] text-white/15 not-italic transition-all duration-300 group-hover:text-white/65 group-hover:translate-x-[4px] group-hover:-translate-y-[4px]">
+              ↗
+            </i>
           </a>
-        </div>
-      </div>
+        ))}
+      </ScrollReveal>
     </section>
   )
 }

@@ -15,6 +15,7 @@ export interface GitHubRepo {
   topics: string[]
   updatedAt: string
   readme?: string
+  category?: 'ai' | 'fs' | 'sys'
 }
 
 function getOctokit() {
@@ -54,6 +55,12 @@ export async function fetchUserRepos(): Promise<GitHubRepo[]> {
     } catch {
       // No README
     }
+    
+    // Auto-categorize based on topics
+    let category: 'ai' | 'fs' | 'sys' = 'fs'
+    const t = repo.topics || []
+    if (t.some(x => ['ai', 'rag', 'llm', 'ollama', 'gemini'].includes(x))) category = 'ai'
+    else if (t.some(x => ['postgresql', 'database-engineering', 'docker', 'infrastructure'].includes(x))) category = 'sys'
 
     results.push({
       name: repo.name,
@@ -65,6 +72,7 @@ export async function fetchUserRepos(): Promise<GitHubRepo[]> {
       topics: repo.topics ?? [],
       updatedAt: repo.updated_at ?? new Date().toISOString(),
       readme,
+      category
     })
   }
 
@@ -97,6 +105,7 @@ export const FALLBACK_REPOS: GitHubRepo[] = [
     stars: 1, forks: 0, language: 'Python',
     topics: ['rag', 'fastapi', 'pgvector', 'ollama', 'gemini', 'redis'],
     updatedAt: '2025-01-01',
+    category: 'ai'
   },
   {
     name: 'llm-engineering-lab',
@@ -105,6 +114,7 @@ export const FALLBACK_REPOS: GitHubRepo[] = [
     stars: 2, forks: 0, language: 'Python',
     topics: ['llm', 'fastapi', 'pydantic', 'ollama', 'extraction'],
     updatedAt: '2025-01-01',
+    category: 'ai'
   },
   {
     name: 'sql-data-systems-projects',
@@ -113,6 +123,7 @@ export const FALLBACK_REPOS: GitHubRepo[] = [
     stars: 2, forks: 0, language: 'PLpgSQL',
     topics: ['postgresql', 'plpgsql', 'database-engineering'],
     updatedAt: '2025-01-01',
+    category: 'sys'
   },
   {
     name: 'portfolio-website',
@@ -121,6 +132,7 @@ export const FALLBACK_REPOS: GitHubRepo[] = [
     stars: 0, forks: 0, language: 'TypeScript',
     topics: ['portfolio', 'ai', 'rag', 'nextjs', 'ollama'],
     updatedAt: '2025-01-01',
+    category: 'fs'
   },
 ]
 
