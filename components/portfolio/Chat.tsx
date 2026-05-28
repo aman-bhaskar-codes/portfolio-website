@@ -232,8 +232,7 @@ export default function Chat() {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about my projects, stack, availability..."
                 rows={1}
-                className="flex-1 bg-black border border-white/10 rounded-[2px] px-4 py-3 text-sm text-white placeholder-white/40 resize-none focus:outline-none focus:border-white/30 transition-colors font-mono"
-                style={{ minHeight: '48px', maxHeight: '120px' }}
+                className="flex-1 bg-black border border-white/10 rounded-[2px] px-4 py-3 text-sm text-white placeholder-white/40 resize-none focus:outline-none focus:border-white/30 transition-colors font-mono min-h-[48px] max-h-[120px]"
                 disabled={loading}
                 onInput={e => {
                   const t = e.target as HTMLTextAreaElement

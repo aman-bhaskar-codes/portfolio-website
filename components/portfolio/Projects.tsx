@@ -45,7 +45,7 @@ export default function Projects() {
         <a 
           href="https://github.com/aman-bhaskar-codes" 
           target="_blank" 
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="text-white/30 no-underline text-[0.78rem] font-semibold tracking-[0.12em] uppercase border-b border-white/15 pb-[2px] hover:text-white hover:border-white transition-all"
         >
           All projects →

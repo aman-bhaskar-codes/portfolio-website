@@ -1312,7 +1312,7 @@ rgba(255,255,255,0.28)       → section labels / metadata
 rgba(255,255,255,0.15)       → dimmer accents
 rgba(255,255,255,0.08)       → section dividers / borders
 rgba(255,255,255,0.06)       → grid gap background (gives 1px lines)
-rgba(255,255,255,0.07)       → echo ghost text-stroke
+rgba(255, 255, 255, 0.1)       → echo ghost text-stroke
 rgba(255,255,255,0.025)      → card hover background
 rgba(255,255,255,0.028)      → grain texture opacity
 ```

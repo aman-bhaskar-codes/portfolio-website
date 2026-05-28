@@ -15,10 +15,10 @@ export default function Contact() {
           </ScrollReveal>
         </div>
         <ScrollReveal delay={0.15} className="flex justify-center gap-[2.5rem] flex-wrap mb-[1.5rem]">
-          <a href="https://github.com/aman-bhaskar-codes" target="_blank" rel="noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">GitHub</a>
-          <a href="https://www.linkedin.com/in/aman-bhaskar-18jan2005/" target="_blank" rel="noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">LinkedIn</a>
-          <a href="https://x.com/_aman_bhaskar" target="_blank" rel="noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">Twitter / X</a>
-          <a href="https://www.instagram.com/mr.aman.bhaskar/" target="_blank" rel="noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">Instagram</a>
+          <a href="https://github.com/aman-bhaskar-codes" target="_blank" rel="noopener noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">GitHub</a>
+          <a href="https://www.linkedin.com/in/aman-bhaskar-18jan2005/" target="_blank" rel="noopener noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">LinkedIn</a>
+          <a href="https://x.com/_aman_bhaskar" target="_blank" rel="noopener noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">Twitter / X</a>
+          <a href="https://www.instagram.com/mr.aman.bhaskar/" target="_blank" rel="noopener noreferrer" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">Instagram</a>
           <a href="mailto:amanbhaskarcodes@gmail.com" className="text-white/35 no-underline text-[0.78rem] font-semibold tracking-[0.15em] uppercase transition-colors hover:text-white">Email</a>
         </ScrollReveal>
         <ScrollReveal delay={0.25}>
@@ -31,7 +31,7 @@ export default function Contact() {
       <footer className="px-[3rem] py-[1.8rem] flex justify-between items-center border-t border-white/10 text-[0.7rem] text-white/20 tracking-[0.08em] flex-col md:flex-row gap-3 text-center">
         <span>© 2026 AMAN BHASKAR</span>
         <span className="tracking-[0.05em]">Full-Stack Developer & AI Engineer</span>
-        <a href="https://github.com/aman-bhaskar-codes/portfolio-website" target="_blank" rel="noreferrer" className="text-white/25 no-underline transition-colors hover:text-white/60">
+        <a href="https://github.com/aman-bhaskar-codes/portfolio-website" target="_blank" rel="noopener noreferrer" className="text-white/25 no-underline transition-colors hover:text-white/60">
           Source on GitHub
         </a>
       </footer>

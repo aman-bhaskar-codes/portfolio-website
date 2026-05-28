@@ -38,7 +38,7 @@ export default function Hero() {
         <a 
           href="https://github.com/aman-bhaskar-codes" 
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="text-white no-underline text-[0.83rem] font-semibold tracking-[0.06em] pb-[3px] border-b border-white/20 hover:border-white opacity-75 hover:opacity-100 transition-all"
         >
           Explore GitHub
