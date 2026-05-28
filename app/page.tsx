@@ -1,27 +1,28 @@
-import Navigation from '@/components/portfolio/Navigation'
-import Hero from '@/components/portfolio/Hero'
-import About from '@/components/portfolio/About'
-import Projects from '@/components/portfolio/Projects'
-import Skills from '@/components/portfolio/Skills'
-import Chat from '@/components/portfolio/Chat'
-import Contact from '@/components/portfolio/Contact'
-import { CustomCursor } from '@/components/portfolio/CustomCursor'
-import { Marquee } from '@/components/portfolio/Marquee'
-import { Stats } from '@/components/portfolio/Stats'
+import Navigation from '@/components/portfolio/Navigation';
+import Hero from '@/components/portfolio/Hero';
+import { Marquee } from '@/components/portfolio/Marquee';
+import Projects from '@/components/portfolio/Projects';
+import { Stats } from '@/components/portfolio/Stats';
+import About from '@/components/portfolio/About';
+import Skills from '@/components/portfolio/Skills';
+import ContactCTA from '@/components/portfolio/ContactCTA';
+import PageTransition from '@/components/portfolio/PageTransition';
+import Chat from '@/components/portfolio/Chat';
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
-      <CustomCursor />
-      <Navigation />
-      <Hero />
-      <Marquee />
-      <Projects />
-      <Stats />
-      <About />
-      <Skills />
-      <Chat />
-      <Contact />
-    </main>
+    <PageTransition>
+      <main className="min-h-screen">
+        <Navigation />
+        <Hero />
+        <Marquee />
+        <Projects />
+        <Stats />
+        <About />
+        <Skills />
+        <ContactCTA />
+        <Chat />
+      </main>
+    </PageTransition>
   )
 }

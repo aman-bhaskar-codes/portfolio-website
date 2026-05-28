@@ -1,28 +1,53 @@
-"use client";
+'use client';
+import { useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import ScrollTrigger from 'gsap/ScrollTrigger';
 
-import { useCountUp, useScrollReveal } from "@/lib/motion";
+const STATS = [
+  { n: 20,  suffix: '+',  label: 'Projects Built'        },
+  { n: 22,  suffix: '',   label: 'Docker Services'        },
+  { n: 100, suffix: '%',  label: 'Local AI — Zero Cost'   },
+  { n: 5,   suffix: '',   label: 'Years Coding'           },
+];
 
-interface StatItemProps {
-  end: number;
-  label: string;
-  suffix?: string;
-  delay?: number;
-}
+function Counter({ n, suffix, label }: typeof STATS[0]) {
+  const numRef = useRef<HTMLSpanElement>(null);
 
-function StatItem({ end, label, suffix = "", delay = 0 }: StatItemProps) {
-  const { ref, isInView } = useScrollReveal(0.5);
-  const count = useCountUp(end, 1600, isInView);
+  useEffect(() => {
+    const obj = { val: 0 };
+    gsap.to(obj, {
+      val: n,
+      duration: 1.8,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: numRef.current,
+        start: 'top 85%',
+        once: true,
+      },
+      onUpdate() {
+        if (numRef.current)
+          numRef.current.textContent = Math.round(obj.val) + suffix;
+      },
+    });
+  }, [n, suffix]);
 
   return (
-    <div 
-      ref={ref}
-      className={`bg-black py-14 px-8 text-center rv ${isInView ? 'on' : ''}`}
-      style={{ transitionDelay: `${delay}s` }}
-    >
-      <span className="font-['Bebas_Neue'] text-[clamp(3rem,5vw,6rem)] leading-none block mb-2">
-        {count}{suffix}
+    <div style={{
+      background: 'var(--black, #000)',
+      padding: '3.5rem 2rem',
+      textAlign: 'center',
+    }}>
+      <span ref={numRef} style={{
+        fontFamily: "var(--font-display-alt), 'Bebas Neue', sans-serif",
+        fontSize: 'clamp(3rem, 5vw, 6rem)',
+        lineHeight: 1, display: 'block', marginBottom: '0.5rem',
+      }}>
+        0{suffix}
       </span>
-      <span className="text-[0.7rem] tracking-[0.2em] uppercase text-white/30 block">
+      <span style={{
+        fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.3)', display: 'block',
+      }}>
         {label}
       </span>
     </div>
@@ -31,11 +56,15 @@ function StatItem({ end, label, suffix = "", delay = 0 }: StatItemProps) {
 
 export function Stats() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-[1px] bg-white/5 border-t border-b border-white/10">
-      <StatItem end={20} suffix="+" label="Projects Built" delay={0} />
-      <StatItem end={22} label="Docker Services" delay={0.1} />
-      <StatItem end={100} suffix="%" label="Local AI — Zero Cost" delay={0.2} />
-      <StatItem end={5} label="Years Coding" delay={0.3} />
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      background: 'rgba(255,255,255,0.06)',
+      gap: '1px',
+      borderTop: '1px solid rgba(255,255,255,0.08)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+    }}>
+      {STATS.map((s) => <Counter key={s.label} {...s} />)}
     </div>
   );
 }

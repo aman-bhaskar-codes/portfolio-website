@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Bebas_Neue, Syne } from "next/font/google";
 import "./styles/globals.css";
 import Providers from "@/components/Providers";
+import SmoothScroll from "@/components/portfolio/SmoothScroll";
+import CustomCursor from "@/components/portfolio/CustomCursor";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -59,7 +61,12 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased bg-black text-white overflow-x-hidden">
-        <Providers>{children}</Providers>
+        <Providers>
+          <CustomCursor />
+          <SmoothScroll>
+            {children}
+          </SmoothScroll>
+        </Providers>
       </body>
     </html>
   );
