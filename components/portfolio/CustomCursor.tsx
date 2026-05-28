@@ -9,13 +9,11 @@ export default function CustomCursor() {
   const ring_ = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // Only run on desktop/non-touch devices
-    if (window.matchMedia('(pointer: coarse)').matches) return;
-
     const onMove = (e: MouseEvent) => {
       pos.current = { x: e.clientX, y: e.clientY };
       gsap.to(dot.current, {
         x: e.clientX, y: e.clientY,
+        xPercent: -50, yPercent: -50,
         duration: 0.05, ease: 'none',
       });
     };
@@ -29,15 +27,20 @@ export default function CustomCursor() {
       gsap.to(ring.current, { scale: 1, borderColor: 'rgba(255,255,255,0.35)', duration: 0.3 });
     };
 
+    // Smooth ring follow
     const animate = () => {
       ring_.current.x += (pos.current.x - ring_.current.x) * 0.11;
       ring_.current.y += (pos.current.y - ring_.current.y) * 0.11;
-      gsap.set(ring.current, { x: ring_.current.x, y: ring_.current.y });
+      gsap.set(ring.current, { x: ring_.current.x, y: ring_.current.y, xPercent: -50, yPercent: -50 });
       requestAnimationFrame(animate);
     };
     animate();
 
     document.addEventListener('mousemove', onMove);
+    
+    // Support dynamically added elements by observing DOM or polling if necessary
+    // A simpler approach is to attach the listeners initially, but since we are in Next.js,
+    // we should re-attach when elements appear. For now, doing it initially as the spec had.
     const elements = document.querySelectorAll('a, button');
     elements.forEach(el => {
       el.addEventListener('mouseenter', onEnterLink);
@@ -55,20 +58,18 @@ export default function CustomCursor() {
 
   return (
     <>
-      <div ref={dot} className="hidden md:block" style={{
-        position: 'fixed', width: 8, height: 8,
+      <div ref={dot} style={{
+        position: 'fixed', width: 8, height: 8, top: 0, left: 0,
         background: 'white', borderRadius: '50%',
         pointerEvents: 'none', zIndex: 9999,
-        transform: 'translate(-50%, -50%)',
         mixBlendMode: 'difference',
         willChange: 'transform',
       }} />
-      <div ref={ring} className="hidden md:block" style={{
-        position: 'fixed', width: 40, height: 40,
+      <div ref={ring} style={{
+        position: 'fixed', width: 40, height: 40, top: 0, left: 0,
         border: '1px solid rgba(255,255,255,0.35)',
         borderRadius: '50%', pointerEvents: 'none',
         zIndex: 9998,
-        transform: 'translate(-50%, -50%)',
         willChange: 'transform',
       }} />
     </>

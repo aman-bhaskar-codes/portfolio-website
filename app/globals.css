@@ -1,0 +1,291 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+/* ─── GOOGLE FONTS (Loaded via next/font/google in layout.tsx) ──────── */
+
+/* ─── CSS VARIABLES ─────────────────────────────────── */
+:root {
+  --bg:         #050505;
+  --surface:    #0d0d0d;
+  --border:     rgba(240,235,224,0.07);
+  --text-1:     #f0ebe0;
+  --text-2:     rgba(240,235,224,0.45);
+  --text-3:     rgba(240,235,224,0.20);
+  --accent:     #e8ff50;
+  --accent-dim: rgba(232,255,80,0.10);
+  --cyan:       #00e5ff;
+  --cyan-dim:   rgba(0,229,255,0.08);
+  --radius:     2px;
+  --navbar-h:   72px;
+  --section:    clamp(80px, 12vw, 160px);
+}
+
+/* ─── RESET & BASE ──────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  cursor: none; /* we use custom cursor */
+}
+
+/* Hide default cursor globally for custom cursor */
+*, a, button { cursor: none !important; }
+
+body {
+  background: var(--bg);
+  overflow-x: hidden;
+}
+
+/* ─── GRAIN OVERLAY ─────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.4;
+}
+
+/* ─── SCROLLBAR ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 1px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ─── SELECTION ─────────────────────────────────────── */
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* ─── TYPOGRAPHY SCALE ──────────────────────────────── */
+.font-display { font-family: var(--font-unbounded), 'Unbounded', sans-serif; }
+.font-mono    { font-family: var(--font-ibm-mono), 'IBM Plex Mono', monospace; }
+
+/* ─── HERO TITLE ────────────────────────────────────── */
+.hero-title {
+  font-family: var(--font-unbounded), 'Unbounded', sans-serif;
+  font-weight: 900;
+  font-size: clamp(64px, 16vw, 240px);
+  line-height: 0.88;
+  letter-spacing: -0.04em;
+  color: var(--text-1);
+}
+
+.hero-title-outline {
+  font-family: var(--font-unbounded), 'Unbounded', sans-serif;
+  font-weight: 900;
+  font-size: clamp(64px, 16vw, 240px);
+  line-height: 0.88;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(240,235,224,0.2);
+}
+
+/* ─── SECTION TITLE ─────────────────────────────────── */
+.section-title {
+  font-family: var(--font-unbounded), 'Unbounded', sans-serif;
+  font-weight: 800;
+  font-size: clamp(32px, 6vw, 88px);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--text-1);
+}
+
+/* ─── BODY TEXT ─────────────────────────────────────── */
+.body-text {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: clamp(15px, 1.4vw, 18px);
+  line-height: 1.65;
+  color: var(--text-2);
+}
+
+/* ─── LABEL / TAG ───────────────────────────────────── */
+.label {
+  font-family: var(--font-ibm-mono), 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* ─── MARQUEE ANIMATION ─────────────────────────────── */
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-left 30s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ─── GLOW EFFECTS ──────────────────────────────────── */
+.glow-accent {
+  box-shadow: 0 0 40px rgba(232,255,80,0.15), 0 0 80px rgba(232,255,80,0.05);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 40px rgba(0,229,255,0.15), 0 0 80px rgba(0,229,255,0.05);
+}
+
+/* ─── GRADIENT MESH BACKGROUND ──────────────────────── */
+.mesh-bg {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 60% 50% at 20% 20%, rgba(232,255,80,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 80% 80%, rgba(0,229,255,0.025) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 40% at 50% 50%, rgba(240,235,224,0.01) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ─── HORIZONTAL LINE ───────────────────────────────── */
+.h-rule {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── CLIP PATH WIPES ───────────────────────────────── */
+.clip-reveal {
+  overflow: hidden;
+}
+
+/* ─── TAG PILL ──────────────────────────────────────── */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+.tag-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ─── PROJECT CARD HOVER ────────────────────────────── */
+.project-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: border-color 0.4s ease;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent-dim), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.project-card:hover {
+  border-color: rgba(232,255,80,0.2);
+}
+
+.project-card:hover::before {
+  opacity: 1;
+}
+
+/* ─── AI PULSE INDICATOR ────────────────────────────── */
+@keyframes ai-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
+}
+
+.ai-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  animation: ai-pulse 2s ease-in-out infinite;
+}
+
+/* ─── TERMINAL CURSOR ───────────────────────────────── */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: var(--accent);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* ─── SMOOTH SCROLL ─────────────────────────────────── */
+html.lenis { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-scrolling iframe { pointer-events: none; }
+
+/* ─── CUSTOM CURSOR ─────────────────────────────────── */
+.cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: transform 0.1s ease, width 0.3s ease, height 0.3s ease, background 0.3s ease;
+}
+
+.cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(232,255,80,0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  transition: transform 0.12s ease, width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+}
+
+/* Cursor hover states */
+body.cursor-hover .cursor-dot {
+  width: 10px; height: 10px;
+  background: var(--accent);
+}
+
+body.cursor-hover .cursor-ring {
+  width: 60px; height: 60px;
+  border-color: rgba(232,255,80,0.6);
+}

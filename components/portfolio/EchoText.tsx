@@ -5,8 +5,8 @@ export function EchoText({
   tag: Tag = 'h1',
   className = '',
 }: {
-  children: string;
-  tag?: React.ElementType;
+  children: React.ReactNode;
+  tag?: any;
   className?: string;
 }) {
   return (

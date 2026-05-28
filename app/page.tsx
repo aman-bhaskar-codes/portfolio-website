@@ -1,28 +1,27 @@
-import Navigation from '@/components/portfolio/Navigation';
-import Hero from '@/components/portfolio/Hero';
-import { Marquee } from '@/components/portfolio/Marquee';
-import Projects from '@/components/portfolio/Projects';
-import { Stats } from '@/components/portfolio/Stats';
-import About from '@/components/portfolio/About';
-import Skills from '@/components/portfolio/Skills';
-import ContactCTA from '@/components/portfolio/ContactCTA';
-import PageTransition from '@/components/portfolio/PageTransition';
-import Chat from '@/components/portfolio/Chat';
+import { Navbar } from '@/components/ui/Navbar'
+import { Hero } from '@/components/sections/Hero'
+import { MarqueeStrip } from '@/components/sections/MarqueeStrip'
+import { FeaturedProjects } from '@/components/sections/FeaturedProjects'
+import { AboutStory } from '@/components/sections/AboutStory'
+import { Capabilities } from '@/components/sections/Capabilities'
+import { StatsSection } from '@/components/sections/StatsSection'
+import { DigitalTwinChat } from '@/components/sections/DigitalTwinChat'
+import { ContactSection } from '@/components/sections/ContactSection'
+import { Footer } from '@/components/ui/Footer'
 
 export default function Home() {
   return (
-    <PageTransition>
-      <main className="min-h-screen">
-        <Navigation />
-        <Hero />
-        <Marquee />
-        <Projects />
-        <Stats />
-        <About />
-        <Skills />
-        <ContactCTA />
-        <Chat />
-      </main>
-    </PageTransition>
+    <main>
+      <Navbar />
+      <Hero />
+      <MarqueeStrip />
+      <FeaturedProjects />
+      <AboutStory />
+      <Capabilities />
+      <StatsSection />
+      <DigitalTwinChat />
+      <ContactSection />
+      <Footer />
+    </main>
   )
 }
