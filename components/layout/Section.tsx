@@ -1,47 +1,60 @@
-"use client";
-
-import { ReactNode } from "react";
-import { motion } from "framer-motion";
-import { useScrollReveal, fadeUp, staggerContainer } from "@/lib/motion";
+import { ReactNode } from 'react'
 
 interface SectionProps {
-    id?: string;
-    children: ReactNode;
-    className?: string;
-    /** Full viewport height for cinematic pacing */
-    fullscreen?: boolean;
-    /** Enable staggered children animation */
-    stagger?: boolean;
-    /** Custom stagger delay between children */
-    staggerDelay?: number;
+  id?: string
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  children: ReactNode
+  accent?: boolean
 }
 
-export default function Section({
-    children,
-    id,
-    className = "",
-    fullscreen = false,
-    stagger = false,
-    staggerDelay = 0.1,
-}: SectionProps) {
-    const { ref, isInView } = useScrollReveal(0.1);
+export function Section({ id, eyebrow, title, subtitle, children, accent }: SectionProps) {
+  return (
+    <section
+      id={id}
+      style={{
+        padding: '100px 0',
+        position: 'relative',
+        background: accent ? 'var(--bg-surface)' : 'transparent',
+      }}
+    >
+      {accent && (
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(0deg, transparent, rgba(124,109,240,0.02), transparent)',
+        }} />
+      )}
 
-    const heightClass = fullscreen
-        ? "min-h-screen flex items-center justify-center"
-        : "py-40";
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+        {/* Section header */}
+        <div style={{ marginBottom: 64 }}>
+          {eyebrow && (
+            <span style={{
+              display: 'block', marginBottom: 12,
+              fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: 'var(--accent-primary)',
+            }}>
+              {eyebrow}
+            </span>
+          )}
+          <h2 style={{
+            fontFamily: 'var(--font-clash)', fontWeight: 600,
+            fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.025em',
+            color: 'var(--text-primary)', marginBottom: subtitle ? 16 : 0,
+          }}>
+            {title}
+          </h2>
+          {subtitle && (
+            <p style={{ color: 'var(--text-secondary)', maxWidth: 520, lineHeight: 1.7 }}>
+              {subtitle}
+            </p>
+          )}
+        </div>
 
-    const variants = stagger ? staggerContainer(staggerDelay) : fadeUp;
-
-    return (
-        <motion.section
-            ref={ref}
-            id={id}
-            className={`relative overflow-hidden border-t border-border ${heightClass} ${className}`}
-            initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={variants}
-        >
-            {children}
-        </motion.section>
-    );
+        {children}
+      </div>
+    </section>
+  )
 }

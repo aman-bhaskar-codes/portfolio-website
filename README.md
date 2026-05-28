@@ -215,14 +215,15 @@ portfolio-website/
 │       ├── chat/route.ts          ← RAG-powered SSE streaming chat
 │       ├── github/route.ts        ← GitHub projects API (cached)
 │       └── ingest/route.ts        ← Knowledge ingestion endpoint
-├── components/portfolio/
-│   ├── Navigation.tsx             ← Sticky nav + glassmorphism + mobile
-│   ├── Hero.tsx                   ← Typewriter animation + stats
-│   ├── About.tsx                  ← Bio + career timeline
-│   ├── Projects.tsx               ← GitHub-powered project cards
-│   ├── Skills.tsx                 ← Categorized skill progress bars
-│   ├── Chat.tsx                   ← AI twin interface + SSE consumer
-│   └── Contact.tsx                ← Social links grid + footer
+├── components/
+│   ├── chat/ChatWindow.tsx        ← AI twin interface + SSE consumer + ReactMarkdown
+│   ├── effects/CursorGlow.tsx     ← Custom glowing cursor tracker
+│   ├── layout/Section.tsx         ← Base section layout container
+│   ├── nav/Navbar.tsx             ← Glassmorphism navbar with mobile menu
+│   ├── projects/ProjectCard.tsx   ← Dynamic status-based project cards
+│   ├── sections/Hero.tsx          ← 60fps canvas particle constellation hero
+│   ├── skills/SkillsConstellation.tsx ← Elite skill groups display
+│   └── system/SystemStatus.tsx    ← Active service monitoring view
 ├── lib/
 │   ├── ollama.ts                  ← Ollama client (embed + stream)
 │   ├── rag-store.ts               ← JSON vector store + cosine + BM25
