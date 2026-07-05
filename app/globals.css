@@ -1,27 +1,25 @@
 @import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=instrument-sans@400,500,600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
 /* ═══════════════════════════════════════════════
-   AGENTIC PORTFOLIO — DESIGN TOKENS
+   AGENTIC PORTFOLIO — CINEMATIC DESIGN TOKENS
    ═══════════════════════════════════════════════ */
 
 :root {
   /* ── Backgrounds ── */
-  --bg-void:        #05050a;   /* True deep space — page bg */
-  --bg-surface:     #0d0d14;   /* Cards, panels */
-  --bg-elevated:    #13131c;   /* Modals, dropdowns */
-  --bg-overlay:     #1a1a26;   /* Hover states */
+  --bg-void:        #050507;   /* True deep space — page bg */
+  --bg-surface:     #0c0c11;   /* Cards, panels */
+  --bg-elevated:    #12121a;   /* Modals, dropdowns */
+  --bg-overlay:     #1a1a24;   /* Hover states */
   --bg-border:      #ffffff0d; /* Subtle dividers */
 
   /* ── Primary Accent: Electric Indigo ── */
-  --accent-primary:   #7c6df0; /* CTA buttons, links */
-  --accent-secondary: #5b4de0; /* Pressed states */
-  --accent-glow:      #7c6df033; /* Shadow/glow with alpha */
-  --accent-muted:     #7c6df01a; /* Very light tints */
+  --accent-primary:   #7c6df0;
+  --accent-secondary: #5b4de0;
+  --accent-glow:      #7c6df033;
+  --accent-muted:     #7c6df01a;
 
   /* ── Secondary Accent: Solar Amber ── */
   --amber:         #f59e0b;
@@ -36,29 +34,17 @@
   --cyan-muted:    #06b6d41a;
 
   /* ── Text ── */
-  --text-primary:   #f0f0f5;   /* Headlines */
-  --text-secondary: #9090a8;   /* Body copy */
-  --text-tertiary:  #5a5a72;   /* Captions, placeholders */
-  --text-inverse:   #05050a;
+  --text-primary:   #f2f2f7;
+  --text-secondary: #9494ac;
+  --text-tertiary:  #5c5c74;
+  --text-inverse:   #050507;
 
-  /* ── Typography Scale ── */
+  /* ── Typography ── */
   --font-display:   'Clash Display', sans-serif;
   --font-body:      'Instrument Sans', sans-serif;
+  --font-clash:     'Clash Display', sans-serif;
+  --font-instrument:'Instrument Sans', sans-serif;
   --font-mono:      'JetBrains Mono', monospace;
-
-  /* ── Spacing (8px base grid) ── */
-  --space-1: 0.25rem;  /* 4px */
-  --space-2: 0.5rem;   /* 8px */
-  --space-3: 0.75rem;  /* 12px */
-  --space-4: 1rem;     /* 16px */
-  --space-5: 1.25rem;  /* 20px */
-  --space-6: 1.5rem;   /* 24px */
-  --space-8: 2rem;     /* 32px */
-  --space-10: 2.5rem;  /* 40px */
-  --space-12: 3rem;    /* 48px */
-  --space-16: 4rem;    /* 64px */
-  --space-20: 5rem;    /* 80px */
-  --space-24: 6rem;    /* 96px */
 
   /* ── Border Radius ── */
   --radius-sm:   4px;
@@ -71,7 +57,6 @@
   /* ── Shadows & Glows ── */
   --shadow-card:   0 1px 0 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(255,255,255,0.06);
   --shadow-hover:  0 0 0 1px var(--accent-glow), 0 4px 24px rgba(124,109,240,0.12);
-  --shadow-amber:  0 0 0 1px var(--amber-glow), 0 4px 24px rgba(245,158,11,0.12);
   --glow-accent:   0 0 40px var(--accent-glow);
   --glow-amber:    0 0 40px var(--amber-glow);
 
@@ -85,18 +70,73 @@
   --duration-lazy: 700ms;
 }
 
-/* ── Base ── */
-*, *::before, *::after { box-sizing: border-box; }
+@theme inline {
+  --color-background: var(--bg-void);
+  --color-foreground: var(--text-primary);
+  --color-void: var(--bg-void);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-overlay: var(--bg-overlay);
+  --color-accent: var(--accent-primary);
+  --color-accent-soft: var(--accent-muted);
+  --color-amber: var(--amber);
+  --color-foreground-muted: var(--text-secondary);
+  --color-foreground-faint: var(--text-tertiary);
+  --color-positive: var(--green);
+  --color-cyan: var(--cyan);
+  --color-negative: var(--red);
+  --color-border-subtle: rgba(255, 255, 255, 0.07);
 
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Clash Display', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius: 12px;
+
+  --animate-marquee: marquee 32s linear infinite;
+  --animate-marquee-reverse: marquee-reverse 38s linear infinite;
+  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-scroll-hint: scroll-hint 2s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes marquee-reverse {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.65); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes scroll-hint {
+  0%   { transform: translateY(0); opacity: 1; }
+  70%  { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Base ── */
 html {
-  scroll-behavior: smooth;
+  background-color: var(--bg-void);
   scroll-padding-top: 80px;
 }
 
 body {
   background-color: var(--bg-void);
   color: var(--text-primary);
-  font-family: var(--font-instrument, 'Instrument Sans', sans-serif);
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -104,22 +144,18 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Display typography ── */
+/* Lenis smooth scroll */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ── Display typography helpers (legacy pages) ── */
 .display-2xl { font-family: var(--font-clash); font-size: clamp(3.5rem, 8vw, 7rem); font-weight: 600; line-height: 1.0; letter-spacing: -0.03em; }
 .display-xl  { font-family: var(--font-clash); font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 600; line-height: 1.05; letter-spacing: -0.025em; }
 .display-lg  { font-family: var(--font-clash); font-size: clamp(1.75rem, 3vw, 2.75rem); font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
 
-/* ── Body typography ── */
-.text-xl   { font-size: 1.25rem; line-height: 1.7; }
-.text-lg   { font-size: 1.125rem; line-height: 1.7; }
-.text-base { font-size: 1rem; line-height: 1.7; }
-.text-sm   { font-size: 0.875rem; line-height: 1.6; }
-.text-xs   { font-size: 0.75rem; line-height: 1.5; letter-spacing: 0.01em; }
-
-/* ── Mono ── */
-.font-mono { font-family: var(--font-mono, 'JetBrains Mono', monospace); }
-
-/* ── Color utilities ── */
+/* ── Color utilities (legacy pages) ── */
 .text-primary   { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary  { color: var(--text-tertiary); }
@@ -127,6 +163,46 @@ body {
 .text-amber     { color: var(--amber); }
 .text-green     { color: var(--green); }
 .text-cyan      { color: var(--cyan); }
+.bg-void        { background-color: var(--bg-void); }
+
+/* ── Film grain overlay ── */
+.film-grain {
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 8s steps(10) infinite;
+}
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -8%); }
+  30% { transform: translate(3%, -12%); }
+  50% { transform: translate(-8%, 4%); }
+  70% { transform: translate(6%, 8%); }
+  90% { transform: translate(-3%, 6%); }
+}
+
+/* ── Blueprint grid lines ── */
+.blueprint-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* ── Text stroke (outline headline) ── */
+.text-stroke {
+  -webkit-text-stroke: 1px rgba(242,242,247,0.25);
+  color: transparent;
+}
+
+/* ── Split-text line masking ── */
+.split-line-mask { overflow: hidden; display: block; }
+.split-line-mask .line { display: block; will-change: transform; }
 
 /* ── Selection ── */
 ::selection { background: var(--accent-glow); color: var(--text-primary); }
@@ -144,25 +220,16 @@ body {
   border-radius: var(--radius-sm);
 }
 
-/* ── Default Visibility ── */
+/* ── Default Visibility (legacy) ── */
 .nav-mobile-menu { display: none; }
 
-/* Responsive overrides */
 @media (max-width: 768px) {
   .display-2xl { font-size: 2.75rem; }
   .display-xl  { font-size: 2rem; }
-
-  /* Navbar: hide links, show hamburger */
   .nav-links { display: none; }
   .nav-mobile-menu { display: flex; }
-
-  /* Stack hero stats vertically */
   .hero-stats { flex-direction: column; gap: 24px; }
-
-  /* Single column cards on mobile */
   .projects-grid { grid-template-columns: 1fr; }
-
-  /* Chat height on mobile */
   .chat-window { height: 480px; }
 }
 
@@ -178,6 +245,7 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .film-grain { display: none; }
 }
 
 /* ── Chat Markdown Styles ── */
@@ -203,4 +271,3 @@ body {
 .chat-markdown li:last-child {
   margin-bottom: 0;
 }
-
